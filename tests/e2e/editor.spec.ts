@@ -111,9 +111,9 @@ test.describe("Editor -- /?new (unauthenticated)", () => {
     expect(svgCount).toBeGreaterThanOrEqual(1);
   });
 
-  test("page title matches /Diagram/i on editor route", async ({ page }) => {
+  test("page title matches /Sequence/i on editor route", async ({ page }) => {
     await page.goto("/?new", { timeout: 20_000 });
-    await expect(page).toHaveTitle(/Diagram/i);
+    await expect(page).toHaveTitle(/Sequence/i);
   });
 });
 
