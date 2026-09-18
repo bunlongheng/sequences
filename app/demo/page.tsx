@@ -1,13 +1,13 @@
 import db from "@/lib/db";
 import LandingDemo from "../LandingDemo";
 
-// Public /demo gallery: a hand-picked, hard-coded set of polished demo diagrams
+// Public /demo gallery: a hand-picked, hard-coded set of polished demo sequences
 // (each 5+ participants, modern topics). Pinned by id so the gallery NEVER shows
-// the owner's own working diagrams or low-quality ones — only this curated set,
+// the owner's own working sequences or low-quality ones — only this curated set,
 // in this order. To change the lineup, edit DEMO_IDS.
 export const revalidate = 300;
 
-type Demo = { id: string; title: string; diagram_type: string };
+type Demo = { id: string; title: string; sequence_type: string };
 
 const DEMO_IDS = [
   "c59940a0-0f79-4d50-a95e-65a11585a285", // Claude Code Agent Loop
@@ -22,11 +22,11 @@ const DEMO_IDS = [
 
 export default async function DemoPage() {
   const { rows } = await db.query(
-    `SELECT id, title, diagram_type FROM diagrams WHERE id = ANY($1::uuid[])`,
+    `SELECT id, title, sequence_type FROM sequences WHERE id = ANY($1::uuid[])`,
     [DEMO_IDS]
   );
   const byId = new Map(rows.map(r => [r.id, r]));
   // Preserve the curated order (SQL doesn't guarantee it).
-  const diagrams = DEMO_IDS.map(id => byId.get(id)).filter(Boolean);
-  return <LandingDemo diagrams={JSON.parse(JSON.stringify(diagrams)) as Demo[]} />;
+  const sequences = DEMO_IDS.map(id => byId.get(id)).filter(Boolean);
+  return <LandingDemo sequences={JSON.parse(JSON.stringify(sequences)) as Demo[]} />;
 }

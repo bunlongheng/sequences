@@ -1,4 +1,4 @@
-// Loaded FIRST so the MCP server sees AI_API_SECRET no matter which working
+// Loaded FIRST so the MCP server sees SEQUENCES_API_SECRET no matter which working
 // directory (or cloud shell) launched it. If the var is already in the process
 // env (the primary workstation exports it from ~/.zshenv), we keep that; only
 // when it's missing do we read the repo's .env.local as a fallback.
@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-if (!process.env.AI_API_SECRET) {
+if (!process.env.SEQUENCES_API_SECRET && !process.env.DIAGRAMS_API_SECRET && !process.env.AI_API_SECRET) {
   try {
     const envPath = fileURLToPath(new URL('../.env.local', import.meta.url))
     for (const line of readFileSync(envPath, 'utf8').split('\n')) {

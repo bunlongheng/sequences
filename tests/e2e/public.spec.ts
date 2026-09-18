@@ -16,11 +16,11 @@ test.describe("Public API Routes", () => {
     expect(typeof body.ip === "string" || body.ip === null).toBe(true);
   });
 
-  test("GET /api/diagrams without auth returns 401", async ({ request }) => {
+  test("GET /api/sequences without auth returns 401", async ({ request }) => {
     // On localhost, /api/auth/me returns authorized:true (local bypass), but
-    // /api/diagrams still returns 401 because OWNER_USER_ID is intentionally
+    // /api/sequences still returns 401 because OWNER_USER_ID is intentionally
     // unset in dev - the route cannot resolve the owner row without it.
-    const res = await request.get("/api/diagrams");
+    const res = await request.get("/api/sequences");
     expect(res.status()).toBe(401);
   });
 
@@ -60,8 +60,8 @@ test.describe("Public API Routes", () => {
     expect(res.status()).toBe(400);
   });
 
-  test("POST /api/ai/diagrams without Authorization header returns 401", async ({ request }) => {
-    const res = await request.post("/api/ai/diagrams", {
+  test("POST /api/ai/sequences without Authorization header returns 401", async ({ request }) => {
+    const res = await request.post("/api/ai/sequences", {
       data: { title: "Test", code: "sequenceDiagram\nA->>B: hi" },
     });
     // Auth check runs before any DB access, so this is safe

@@ -29,7 +29,7 @@ vi.mock("@/lib/auth-owner", () => ({
 vi.mock("@/lib/db", () => ({ default: { query: vi.fn() } }));
 
 vi.mock("@/lib/slugs", () => ({
-  uniqueDiagramSlug: vi.fn().mockResolvedValue("slug-1"),
+  uniqueSequenceSlug: vi.fn().mockResolvedValue("slug-1"),
 }));
 
 // Anthropic SDK mock — `new Anthropic(...)` returns an object exposing a
@@ -64,12 +64,12 @@ beforeEach(() => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// GET /api/diagrams
+// GET /api/sequences
 // ════════════════════════════════════════════════════════════════════════════
-describe("GET /api/diagrams", () => {
+describe("GET /api/sequences", () => {
   it("returns 401 when resolveOwnerId returns null", async () => {
-    const { GET } = await import("@/app/api/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams");
+    const { GET } = await import("@/app/api/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences");
     const res = await GET(req);
     expect(res.status).toBe(401);
   });
@@ -78,8 +78,8 @@ describe("GET /api/diagrams", () => {
     mockResolveOwnerId.mockResolvedValue("u1");
     q.mockResolvedValue({ rows: [{ id: 1, title: "Test" }], rowCount: 1 });
 
-    const { GET } = await import("@/app/api/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams");
+    const { GET } = await import("@/app/api/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences");
     const res = await GET(req);
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -89,12 +89,12 @@ describe("GET /api/diagrams", () => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// POST /api/diagrams
+// POST /api/sequences
 // ════════════════════════════════════════════════════════════════════════════
-describe("POST /api/diagrams", () => {
+describe("POST /api/sequences", () => {
   it("returns 401 when resolveOwnerId returns null", async () => {
-    const { POST } = await import("@/app/api/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams", {
+    const { POST } = await import("@/app/api/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ title: "T", code: "C" }),
@@ -105,8 +105,8 @@ describe("POST /api/diagrams", () => {
 
   it("returns 400 when title is missing", async () => {
     mockResolveOwnerId.mockResolvedValue("u1");
-    const { POST } = await import("@/app/api/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams", {
+    const { POST } = await import("@/app/api/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ code: "sequenceDiagram\nA->>B: hi" }),
@@ -117,8 +117,8 @@ describe("POST /api/diagrams", () => {
 
   it("returns 400 when code is missing", async () => {
     mockResolveOwnerId.mockResolvedValue("u1");
-    const { POST } = await import("@/app/api/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams", {
+    const { POST } = await import("@/app/api/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ title: "My Diagram" }),
@@ -131,8 +131,8 @@ describe("POST /api/diagrams", () => {
     mockResolveOwnerId.mockResolvedValue("u1");
     q.mockResolvedValue({ rows: [{ id: "d1", title: "My Diagram" }], rowCount: 1 });
 
-    const { POST } = await import("@/app/api/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams", {
+    const { POST } = await import("@/app/api/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ title: "My Diagram", code: "sequenceDiagram\nA->>B: hi" }),
@@ -145,21 +145,21 @@ describe("POST /api/diagrams", () => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// GET /api/diagrams/[id]
+// GET /api/sequences/[id]
 // ════════════════════════════════════════════════════════════════════════════
-describe("GET /api/diagrams/[id]", () => {
+describe("GET /api/sequences/[id]", () => {
   it("returns 404 when diagram not found", async () => {
-    const { GET } = await import("@/app/api/diagrams/[id]/route");
+    const { GET } = await import("@/app/api/sequences/[id]/route");
     q.mockResolvedValue({ rows: [], rowCount: 0 });
-    const req = new NextRequest("http://localhost:3002/api/diagrams/some-id");
+    const req = new NextRequest("http://localhost:3002/api/sequences/some-id");
     const res = await GET(req, { params: Promise.resolve({ id: "some-id" }) });
     expect(res.status).toBe(404);
   });
 
   it("returns 200 for a public diagram (no auth needed)", async () => {
-    const { GET } = await import("@/app/api/diagrams/[id]/route");
+    const { GET } = await import("@/app/api/sequences/[id]/route");
     q.mockResolvedValue({ rows: [{ id: "d1", title: "T", is_public: true }], rowCount: 1 });
-    const req = new NextRequest("http://example.com/api/diagrams/d1");
+    const req = new NextRequest("http://example.com/api/sequences/d1");
     const res = await GET(req, { params: Promise.resolve({ id: "d1" }) });
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -167,31 +167,31 @@ describe("GET /api/diagrams/[id]", () => {
   });
 
   it("returns 403 for private diagram when authorizeOwner returns false", async () => {
-    const { GET } = await import("@/app/api/diagrams/[id]/route");
+    const { GET } = await import("@/app/api/sequences/[id]/route");
     mockAuthorizeOwner.mockResolvedValue(false);
     q.mockResolvedValue({ rows: [{ id: "d1", title: "T", is_public: false }], rowCount: 1 });
-    const req = new NextRequest("http://example.com/api/diagrams/d1");
+    const req = new NextRequest("http://example.com/api/sequences/d1");
     const res = await GET(req, { params: Promise.resolve({ id: "d1" }) });
     expect(res.status).toBe(403);
   });
 
   it("returns 200 for private diagram when authorizeOwner returns true", async () => {
-    const { GET } = await import("@/app/api/diagrams/[id]/route");
+    const { GET } = await import("@/app/api/sequences/[id]/route");
     mockAuthorizeOwner.mockResolvedValue(true);
     q.mockResolvedValue({ rows: [{ id: "d1", title: "T", is_public: false }], rowCount: 1 });
-    const req = new NextRequest("http://example.com/api/diagrams/d1");
+    const req = new NextRequest("http://example.com/api/sequences/d1");
     const res = await GET(req, { params: Promise.resolve({ id: "d1" }) });
     expect(res.status).toBe(200);
   });
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// PATCH /api/diagrams/[id]
+// PATCH /api/sequences/[id]
 // ════════════════════════════════════════════════════════════════════════════
-describe("PATCH /api/diagrams/[id]", () => {
+describe("PATCH /api/sequences/[id]", () => {
   it("returns 401 when resolveOwnerId returns null", async () => {
-    const { PATCH } = await import("@/app/api/diagrams/[id]/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams/d1", {
+    const { PATCH } = await import("@/app/api/sequences/[id]/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences/d1", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ title: "new" }),
@@ -202,8 +202,8 @@ describe("PATCH /api/diagrams/[id]", () => {
 
   it("returns 400 when body has no allowed fields", async () => {
     mockResolveOwnerId.mockResolvedValue("u1");
-    const { PATCH } = await import("@/app/api/diagrams/[id]/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams/d1", {
+    const { PATCH } = await import("@/app/api/sequences/[id]/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences/d1", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({}),
@@ -215,8 +215,8 @@ describe("PATCH /api/diagrams/[id]", () => {
   it("returns 200 {ok:true} when update succeeds (rowCount 1)", async () => {
     mockResolveOwnerId.mockResolvedValue("u1");
     q.mockResolvedValue({ rows: [], rowCount: 1 });
-    const { PATCH } = await import("@/app/api/diagrams/[id]/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams/d1", {
+    const { PATCH } = await import("@/app/api/sequences/[id]/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences/d1", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ title: "Updated Title" }),
@@ -230,8 +230,8 @@ describe("PATCH /api/diagrams/[id]", () => {
   it("returns 404 when rowCount is 0 (not found or not owner)", async () => {
     mockResolveOwnerId.mockResolvedValue("u1");
     q.mockResolvedValue({ rows: [], rowCount: 0 });
-    const { PATCH } = await import("@/app/api/diagrams/[id]/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams/d1", {
+    const { PATCH } = await import("@/app/api/sequences/[id]/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences/d1", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ title: "Updated" }),
@@ -242,12 +242,12 @@ describe("PATCH /api/diagrams/[id]", () => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// DELETE /api/diagrams/[id]
+// DELETE /api/sequences/[id]
 // ════════════════════════════════════════════════════════════════════════════
-describe("DELETE /api/diagrams/[id]", () => {
+describe("DELETE /api/sequences/[id]", () => {
   it("returns 401 when resolveOwnerId returns null", async () => {
-    const { DELETE } = await import("@/app/api/diagrams/[id]/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams/d1", {
+    const { DELETE } = await import("@/app/api/sequences/[id]/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences/d1", {
       method: "DELETE",
     });
     const res = await DELETE(req, { params: Promise.resolve({ id: "d1" }) });
@@ -257,8 +257,8 @@ describe("DELETE /api/diagrams/[id]", () => {
   it("returns 404 when diagram not found or not owned (rowCount 0)", async () => {
     mockResolveOwnerId.mockResolvedValue("u1");
     q.mockResolvedValue({ rows: [], rowCount: 0 });
-    const { DELETE } = await import("@/app/api/diagrams/[id]/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams/d1", {
+    const { DELETE } = await import("@/app/api/sequences/[id]/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences/d1", {
       method: "DELETE",
     });
     const res = await DELETE(req, { params: Promise.resolve({ id: "d1" }) });
@@ -268,8 +268,8 @@ describe("DELETE /api/diagrams/[id]", () => {
   it("returns 200 {ok:true} when delete succeeds (rowCount 1)", async () => {
     mockResolveOwnerId.mockResolvedValue("u1");
     q.mockResolvedValue({ rows: [], rowCount: 1 });
-    const { DELETE } = await import("@/app/api/diagrams/[id]/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams/d1", {
+    const { DELETE } = await import("@/app/api/sequences/[id]/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences/d1", {
       method: "DELETE",
     });
     const res = await DELETE(req, { params: Promise.resolve({ id: "d1" }) });
@@ -329,7 +329,7 @@ describe("POST /api/ai/generate", () => {
           text: JSON.stringify({
             title: "My Diagram",
             code: "---\ntitle: My Diagram\n---\nsequenceDiagram\nA->>B: hi",
-            diagramType: "sequence",
+            sequenceType: "sequence",
           }),
         },
       ],
@@ -350,9 +350,9 @@ describe("POST /api/ai/generate", () => {
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.id).toBe("d-gen-1");
-    expect(body.url).toBe("https://diagrams-bheng.vercel.app/d/d-gen-1");
-    expect(body.svg).toBe("https://diagrams-bheng.vercel.app/svg/d-gen-1");
-    expect(body.editor).toBe("https://diagrams-bheng.vercel.app/?id=d-gen-1");
+    expect(body.url).toBe("https://sequences-bheng.vercel.app/d/d-gen-1");
+    expect(body.svg).toBe("https://sequences-bheng.vercel.app/svg/d-gen-1");
+    expect(body.editor).toBe("https://sequences-bheng.vercel.app/?id=d-gen-1");
   });
 
   it("returns 402 when the Anthropic SDK reports a billing error", async () => {
@@ -417,19 +417,19 @@ describe("GET /api/auth/me", () => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// POST /api/ai/diagrams  (module reads AI_SECRET at import time)
+// POST /api/ai/sequences  (module reads AI_SECRET at import time)
 // ════════════════════════════════════════════════════════════════════════════
-describe("POST /api/ai/diagrams", () => {
+describe("POST /api/ai/sequences", () => {
   const SECRET = "topsecret";
 
   it("returns 500 when AI_API_SECRET is not set", async () => {
     vi.stubEnv("AI_API_SECRET", "");
     vi.resetModules();
-    const { POST } = await import("@/app/api/ai/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/ai/diagrams", {
+    const { POST } = await import("@/app/api/ai/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${SECRET}` },
-      body: JSON.stringify({ title: "T", code: "sequenceDiagram\nA->>B: hi", diagramType: "sequence" }),
+      body: JSON.stringify({ title: "T", code: "sequenceDiagram\nA->>B: hi", sequenceType: "sequence" }),
     });
     const res = await POST(req);
     expect(res.status).toBe(500);
@@ -439,11 +439,11 @@ describe("POST /api/ai/diagrams", () => {
   it("returns 401 when bearer token is wrong", async () => {
     vi.stubEnv("AI_API_SECRET", SECRET);
     vi.resetModules();
-    const { POST } = await import("@/app/api/ai/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/ai/diagrams", {
+    const { POST } = await import("@/app/api/ai/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: "Bearer wrongsecret" },
-      body: JSON.stringify({ title: "T", code: "sequenceDiagram\nA->>B: hi", diagramType: "sequence" }),
+      body: JSON.stringify({ title: "T", code: "sequenceDiagram\nA->>B: hi", sequenceType: "sequence" }),
     });
     const res = await POST(req);
     expect(res.status).toBe(401);
@@ -453,8 +453,8 @@ describe("POST /api/ai/diagrams", () => {
   it("returns 400 when body is invalid JSON", async () => {
     vi.stubEnv("AI_API_SECRET", SECRET);
     vi.resetModules();
-    const { POST } = await import("@/app/api/ai/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/ai/diagrams", {
+    const { POST } = await import("@/app/api/ai/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${SECRET}` },
       body: "{not json",
@@ -464,14 +464,14 @@ describe("POST /api/ai/diagrams", () => {
     vi.unstubAllEnvs();
   });
 
-  it("returns 400 for unsupported diagramType (flowchart)", async () => {
+  it("returns 400 for unsupported sequenceType (flowchart)", async () => {
     vi.stubEnv("AI_API_SECRET", SECRET);
     vi.resetModules();
-    const { POST } = await import("@/app/api/ai/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/ai/diagrams", {
+    const { POST } = await import("@/app/api/ai/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${SECRET}` },
-      body: JSON.stringify({ title: "T", code: "sequenceDiagram\nA->>B: hi", diagramType: "flowchart" }),
+      body: JSON.stringify({ title: "T", code: "sequenceDiagram\nA->>B: hi", sequenceType: "flowchart" }),
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
@@ -481,11 +481,11 @@ describe("POST /api/ai/diagrams", () => {
   it("returns 400 when code does not contain sequenceDiagram", async () => {
     vi.stubEnv("AI_API_SECRET", SECRET);
     vi.resetModules();
-    const { POST } = await import("@/app/api/ai/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/ai/diagrams", {
+    const { POST } = await import("@/app/api/ai/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${SECRET}` },
-      body: JSON.stringify({ title: "T", code: "graph LR\nA-->B", diagramType: "sequence" }),
+      body: JSON.stringify({ title: "T", code: "graph LR\nA-->B", sequenceType: "sequence" }),
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
@@ -495,11 +495,11 @@ describe("POST /api/ai/diagrams", () => {
   it("returns 400 when title is missing", async () => {
     vi.stubEnv("AI_API_SECRET", SECRET);
     vi.resetModules();
-    const { POST } = await import("@/app/api/ai/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/ai/diagrams", {
+    const { POST } = await import("@/app/api/ai/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${SECRET}` },
-      body: JSON.stringify({ code: "sequenceDiagram\nA->>B: hi", diagramType: "sequence" }),
+      body: JSON.stringify({ code: "sequenceDiagram\nA->>B: hi", sequenceType: "sequence" }),
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
@@ -509,11 +509,11 @@ describe("POST /api/ai/diagrams", () => {
   it("returns 400 when code is missing", async () => {
     vi.stubEnv("AI_API_SECRET", SECRET);
     vi.resetModules();
-    const { POST } = await import("@/app/api/ai/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/ai/diagrams", {
+    const { POST } = await import("@/app/api/ai/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${SECRET}` },
-      body: JSON.stringify({ title: "My Flow", diagramType: "sequence" }),
+      body: JSON.stringify({ title: "My Flow", sequenceType: "sequence" }),
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
@@ -526,19 +526,19 @@ describe("POST /api/ai/diagrams", () => {
     mockOwnerId.mockReturnValue("owner-uuid");
     q.mockResolvedValue({ rows: [{ id: "d-api-1" }], rowCount: 1 });
 
-    const { POST } = await import("@/app/api/ai/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/ai/diagrams", {
+    const { POST } = await import("@/app/api/ai/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${SECRET}` },
-      body: JSON.stringify({ title: "My Flow", code: "sequenceDiagram\nA->>B: hi", diagramType: "sequence" }),
+      body: JSON.stringify({ title: "My Flow", code: "sequenceDiagram\nA->>B: hi", sequenceType: "sequence" }),
     });
     const res = await POST(req);
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body).toEqual({
       id: "d-api-1",
-      url: "https://diagrams-bheng.vercel.app/d/d-api-1",
-      svg_url: "https://diagrams-bheng.vercel.app/svg/d-api-1",
+      url: "https://sequences-bheng.vercel.app/d/d-api-1",
+      svg_url: "https://sequences-bheng.vercel.app/svg/d-api-1",
     });
     vi.unstubAllEnvs();
   });
@@ -549,11 +549,11 @@ describe("POST /api/ai/diagrams", () => {
     mockOwnerId.mockReturnValue("owner-uuid");
     q.mockResolvedValue({ rows: [{ id: "d-api-3" }], rowCount: 1 });
 
-    const { POST } = await import("@/app/api/ai/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/ai/diagrams?format=svg", {
+    const { POST } = await import("@/app/api/ai/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/ai/sequences?format=svg", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${SECRET}` },
-      body: JSON.stringify({ title: "My Flow", code: "sequenceDiagram\nA->>B: hi", diagramType: "sequence" }),
+      body: JSON.stringify({ title: "My Flow", code: "sequenceDiagram\nA->>B: hi", sequenceType: "sequence" }),
     });
     const res = await POST(req);
     expect(res.status).toBe(201);
@@ -573,11 +573,11 @@ describe("POST /api/ai/diagrams", () => {
     mockOwnerId.mockReturnValue("owner-uuid");
     q.mockResolvedValue({ rows: [{ id: "d-api-4" }], rowCount: 1 });
 
-    const { POST } = await import("@/app/api/ai/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/ai/diagrams", {
+    const { POST } = await import("@/app/api/ai/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: "Bearer partnerkey" },
-      body: JSON.stringify({ title: "My Flow", code: "sequenceDiagram\nA->>B: hi", diagramType: "sequence" }),
+      body: JSON.stringify({ title: "My Flow", code: "sequenceDiagram\nA->>B: hi", sequenceType: "sequence" }),
     });
     const res = await POST(req);
     expect(res.status).toBe(201);
@@ -590,14 +590,14 @@ describe("POST /api/ai/diagrams", () => {
     mockOwnerId.mockReturnValue("owner-uuid");
     q.mockResolvedValue({ rows: [{ id: "d-api-2" }], rowCount: 1 });
 
-    const { POST } = await import("@/app/api/ai/diagrams/route");
-    const req = new NextRequest("http://localhost:3002/api/ai/diagrams", {
+    const { POST } = await import("@/app/api/ai/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${SECRET}` },
       body: JSON.stringify({
         title: "My Flow",
         code: "sequenceDiagram\nA->>B: hi",
-        diagramType: "sequence",
+        sequenceType: "sequence",
         tags: ["totally-arbitrary", "owner-controlled"],
       }),
     });
@@ -607,7 +607,7 @@ describe("POST /api/ai/diagrams", () => {
     // insert is hard-forced to ["API"], so a caller-supplied tags array is
     // silently ignored rather than merged or honored.
     expect(q).toHaveBeenCalledWith(
-      expect.stringContaining("INSERT INTO diagrams"),
+      expect.stringContaining("INSERT INTO sequences"),
       expect.arrayContaining([["API"]]),
     );
     vi.unstubAllEnvs();
@@ -677,7 +677,7 @@ describe("GET /api/lan-ip", () => {
 
   it("returns 401 when not authorized", async () => {
     const { GET } = await import("@/app/api/lan-ip/route");
-    const req = new NextRequest("https://diagrams-bheng.vercel.app/api/lan-ip");
+    const req = new NextRequest("https://sequences-bheng.vercel.app/api/lan-ip");
     const res = await GET(req);
     expect(res.status).toBe(401);
   });
@@ -722,16 +722,16 @@ describe("GET /svg/[id]", () => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// GET /api/diagrams/[id]/export  (module reads AI_SECRET at import time)
+// GET /api/sequences/[id]/export  (module reads AI_SECRET at import time)
 // ════════════════════════════════════════════════════════════════════════════
-describe("GET /api/diagrams/[id]/export", () => {
+describe("GET /api/sequences/[id]/export", () => {
   const SECRET = "exportsecret";
 
   it("returns 500 when AI_API_SECRET is not set", async () => {
     vi.stubEnv("AI_API_SECRET", "");
     vi.resetModules();
-    const { GET } = await import("@/app/api/diagrams/[id]/export/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams/d1/export", {
+    const { GET } = await import("@/app/api/sequences/[id]/export/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences/d1/export", {
       headers: { authorization: `Bearer ${SECRET}` },
     });
     const res = await GET(req, { params: Promise.resolve({ id: "d1" }) });
@@ -742,8 +742,8 @@ describe("GET /api/diagrams/[id]/export", () => {
   it("returns 401 when bearer token is wrong", async () => {
     vi.stubEnv("AI_API_SECRET", SECRET);
     vi.resetModules();
-    const { GET } = await import("@/app/api/diagrams/[id]/export/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams/d1/export", {
+    const { GET } = await import("@/app/api/sequences/[id]/export/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences/d1/export", {
       headers: { authorization: "Bearer wrongtoken" },
     });
     const res = await GET(req, { params: Promise.resolve({ id: "d1" }) });
@@ -755,8 +755,8 @@ describe("GET /api/diagrams/[id]/export", () => {
     vi.stubEnv("AI_API_SECRET", SECRET);
     vi.resetModules();
     q.mockResolvedValue({ rows: [], rowCount: 0 });
-    const { GET } = await import("@/app/api/diagrams/[id]/export/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams/d1/export", {
+    const { GET } = await import("@/app/api/sequences/[id]/export/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences/d1/export", {
       headers: { authorization: `Bearer ${SECRET}` },
     });
     const res = await GET(req, { params: Promise.resolve({ id: "d1" }) });
@@ -772,12 +772,12 @@ describe("GET /api/diagrams/[id]/export", () => {
         id: "d1",
         code: "sequenceDiagram\nA->>B: hi",
         title: "Test Export",
-        diagram_type: "sequence",
+        sequence_type: "sequence",
       }],
       rowCount: 1,
     });
-    const { GET } = await import("@/app/api/diagrams/[id]/export/route");
-    const req = new NextRequest("http://localhost:3002/api/diagrams/d1/export", {
+    const { GET } = await import("@/app/api/sequences/[id]/export/route");
+    const req = new NextRequest("http://localhost:3002/api/sequences/d1/export", {
       headers: { authorization: `Bearer ${SECRET}` },
     });
     const res = await GET(req, { params: Promise.resolve({ id: "d1" }) });

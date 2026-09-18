@@ -1,8 +1,8 @@
-// Pure logic extracted from the two large client components (DiagramEditor,
-// DiagramsClient) so their branch behavior - title parsing, keyboard zoom
+// Pure logic extracted from the two large client components (SequenceEditor,
+// SequencesClient) so their branch behavior - title parsing, keyboard zoom
 // stepping, undo capping, relative time, and deterministic tag colors - is
 // unit-testable and counted in coverage (lib/** is in the coverage denominator).
-import { detectDiagramType } from "@/lib/svg-renderer";
+import { detectSequenceType } from "@/lib/svg-renderer";
 
 export type TagColor = { bg: string; text: string; border: string };
 
@@ -11,7 +11,7 @@ export type TagColor = { bg: string; text: string; border: string };
 export function extractTitle(code: string): string {
     const m = code.match(/^\s*(?:title|accTitle):?\s+(.+)$/im);
     if (m) return m[1].trim();
-    const type = detectDiagramType(code);
+    const type = detectSequenceType(code);
     if (type === "diagram" || type === "sequence") return "Untitled";
     return type.charAt(0).toUpperCase() + type.slice(1) + " Diagram";
 }

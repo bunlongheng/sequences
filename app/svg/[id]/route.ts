@@ -15,7 +15,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
   }
 
-  const { rows } = await db.query("SELECT code, settings, title, created_at FROM diagrams WHERE id = $1", [id]);
+  const { rows } = await db.query("SELECT code, settings, title, created_at FROM sequences WHERE id = $1", [id]);
   if (!rows.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const { code, settings, title, created_at } = rows[0];

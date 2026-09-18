@@ -11,7 +11,7 @@ export interface Layout { stepHeight: number; boxWidth: number; spacing: number;
 export const DEFAULT_OPTS: Opts = { coloredLines: true, coloredNumbers: true, coloredText: true, showNotes: false, font: "Roboto", lifelineDash: "solid", theme: "light", iconMode: "icons", icons: {}, boxOverlay: "gloss", autoLayout: true, labelOverrides: {}, colorOverrides: {} };
 export const DEFAULT_LAYOUT: Layout = { stepHeight: 34, boxWidth: 141, spacing: 250, textSize: 13, margin: 80, vPad: 0 };
 
-export { parse, buildSvg, esc, PAL, PAL_MONOKAI, THEMES, ICON_NODES, guessIconKey, renderIcon, detectDiagramType, DEFAULT_DIAGRAM_TITLE, LIFELINE_DASH, DIAGRAM_TYPES, stripFrontmatter };
+export { parse, buildSvg, esc, PAL, PAL_MONOKAI, THEMES, ICON_NODES, guessIconKey, renderIcon, detectSequenceType, DEFAULT_DIAGRAM_TITLE, LIFELINE_DASH, DIAGRAM_TYPES, stripFrontmatter };
 export type { INode };
 
 const PAL = ["#ef4444","#f97316","#eab308","#22c55e","#14b8a6","#06b6d4","#3b82f6","#8b5cf6","#ec4899","#f43f5e","#84cc16","#0891b2"];
@@ -134,7 +134,7 @@ function stripFrontmatter(code: string): string {
     return lines.slice(end + 1).join("\n").trimStart();
 }
 
-function detectDiagramType(code: string): string {
+function detectSequenceType(code: string): string {
     const stripped = stripFrontmatter(code);
     for (const raw of stripped.split("\n")) {
         const line = raw.trim();

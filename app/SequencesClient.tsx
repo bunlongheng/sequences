@@ -5,7 +5,7 @@ import { signOut as nextAuthSignOut } from "next-auth/react";
 import { CuteToast, showToast } from "@/app/CuteToast";
 import { Bot, Plug, Briefcase, User as UserIcon, FlaskConical, Clipboard, GraduationCap, Lightbulb, Rocket, Star, Heart, Tag, Youtube } from "lucide-react";
 import { relativeTime, buildTagColorMap, TAG_PALETTE } from "@/lib/editor-logic";
-import { PAL, stripFrontmatter, detectDiagramType } from "@/lib/svg-renderer";
+import { PAL, stripFrontmatter, detectSequenceType } from "@/lib/svg-renderer";
 
 // Shape the shell passes in: NextAuth session user mapped to the fields this
 // component reads.
@@ -14,35 +14,35 @@ export type ShellUser = {
   user_metadata?: { full_name?: string; name?: string; avatar_url?: string; picture?: string };
 };
 
-type Diagram = {
+type Sequence = {
   id: string; title: string; slug: string;
-  diagram_type: string; created_at: string; updated_at: string; code: string;
+  sequence_type: string; created_at: string; updated_at: string; code: string;
   tags: string[];
   youtube_id?: string | null;
 };
 
 // ── Shared (public) ───────────────────────────────────────────────────────────
-const LS_SHARED = "diagram:shared";
-const LS_VIEW = "diagram:view"; // "list" (default) | "grid"
+const LS_SHARED = "sequence:shared";
+const LS_VIEW = "sequence:view"; // "list" (default) | "grid"
 function loadShared(): Set<string> {
   try { return new Set(JSON.parse(localStorage.getItem(LS_SHARED) ?? "[]")); } catch { return new Set(); }
 }
 
-// ── Diagram minimap ───────────────────────────────────────────────────────────
-function DiagramMinimap({ code, type }: { code: string; type: string }) {
+// ── Sequence minimap ───────────────────────────────────────────────────────────
+function SequenceMinimap({ code, type }: { code: string; type: string }) {
   const W = 224, H = 112;
-  // Strip YAML frontmatter (---...---) before parsing — shared with lib/svg-renderer
+  // Strip YAML frontmatter (---...---) before parsing - shared with lib/svg-renderer
   const stripped = stripFrontmatter(code);
   const rawLines = stripped.split("\n");
   const lines = rawLines.map(l => l.trim()).filter(l => l && !l.startsWith("%%"));
-  // Always detect type from code — stored diagram_type in DB can be stale
-  const detected = detectDiagramType(code);
+  // Always detect type from code - stored sequence_type in DB can be stale
+  const detected = detectSequenceType(code);
   const detectedType = detected === "sequence" ? "sequence"
     : detected === "flowchart" ? "flowchart"
     : type;
   const svgStyle: React.CSSProperties = { display: "block", background: "#ffffff", borderRadius: 8 };
 
-  // ── Sequence — show ALL participants, exact colors matching editor ───────────
+  // ── Sequence - show ALL participants, exact colors matching editor ───────────
   if (detectedType === "sequence") {
     const seen = new Map<string, string>();
     for (const line of lines) {
@@ -57,7 +57,7 @@ function DiagramMinimap({ code, type }: { code: string; type: string }) {
         if (m) { if (!seen.has(m[1])) seen.set(m[1], m[1].slice(0, 4)); if (!seen.has(m[2])) seen.set(m[2], m[2].slice(0, 4)); }
       }
     }
-    const participants = [...seen.keys()]; // no cap — show ALL
+    const participants = [...seen.keys()]; // no cap - show ALL
     const n = participants.length;
     if (n === 0) return <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={svgStyle} />;
     // slot = equal share of width per participant; box fills 60% of slot, gap is 40%
@@ -82,7 +82,7 @@ function DiagramMinimap({ code, type }: { code: string; type: string }) {
     const arrowW = n > 6 ? 0.7 : 1;
     return (
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg" style={svgStyle}>
-        {/* lifelines — two segments so they skip around the circle */}
+        {/* lifelines - two segments so they skip around the circle */}
         {xs.map((x, i) => {
           const r = numSize * 0.9 + 1.5; // gap slightly larger than circle radius
           return (
@@ -296,7 +296,7 @@ function DiagramMinimap({ code, type }: { code: string; type: string }) {
     );
   }
 
-  // ── Generic / GitGraph / Journey — horizontal connected boxes ────────────────
+  // ── Generic / GitGraph / Journey - horizontal connected boxes ────────────────
   const count = Math.min(Math.max(lines.length, 3), 5);
   const gap = 8, boxH = 22, boxW = (W - (count + 1) * gap) / count;
   const by = H / 2 - boxH / 2;
@@ -387,7 +387,7 @@ function AIThinkingOverlay({ onCancel }: { onCancel: () => void }) {
     canvas.style.height = H + "px";
     ctx.scale(dpr, dpr);
 
-    // Respect reduced-motion preference — render a single static frame, no rAF loop
+    // Respect reduced-motion preference - render a single static frame, no rAF loop
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       ctx.fillStyle = "rgba(8,8,16,0.94)";
       ctx.fillRect(0, 0, W, H);
@@ -456,7 +456,7 @@ function AIThinkingOverlay({ onCancel }: { onCancel: () => void }) {
       ctx.globalAlpha = 1;
       ctx.textBaseline = "alphabetic";
 
-      // floating tokens + chars — avoid center zone
+      // floating tokens + chars - avoid center zone
       for (const p of particles) {
         p.x += p.vx; p.y += p.vy;
         if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
@@ -477,7 +477,7 @@ function AIThinkingOverlay({ onCancel }: { onCancel: () => void }) {
       }
       ctx.globalAlpha = 1;
 
-      // rotating phrase — bottom center
+      // rotating phrase - bottom center
       const phrase = LOADING_PHRASES[phraseIdx];
       ctx.font = "500 13px system-ui,sans-serif";
       ctx.fillStyle = `rgba(160,170,220,0.8)`;
@@ -504,7 +504,7 @@ function AIThinkingOverlay({ onCancel }: { onCancel: () => void }) {
 }
 
 // ── AI Prompt modal ────────────────────────────────────────────────────────────
-function AIPromptModal({ onClose, onCreated }: { onClose: () => void; onCreated: (d: Diagram) => void }) {
+function AIPromptModal({ onClose, onCreated }: { onClose: () => void; onCreated: (d: Sequence) => void }) {
   const [prompt, setPrompt] = useState("");
   const [thinking, setThinking] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -559,7 +559,7 @@ function AIPromptModal({ onClose, onCreated }: { onClose: () => void; onCreated:
           </div>
           <div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: "#1c1e21", margin: 0 }}>Generate with AI</h3>
-            <p style={{ fontSize: 12, color: "#8a8d91", margin: 0 }}>Describe your diagram and Claude will build it</p>
+            <p style={{ fontSize: 12, color: "#8a8d91", margin: 0 }}>Describe your sequence and Claude will build it</p>
           </div>
         </div>
         <textarea
@@ -583,7 +583,7 @@ function AIPromptModal({ onClose, onCreated }: { onClose: () => void; onCreated:
   );
 }
 
-// ── Tag colors — 12 unique palettes, assigned by sorted position (no duplicates) ──
+// ── Tag colors - 12 unique palettes, assigned by sorted position (no duplicates) ──
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TAG_ICONS: Record<string, React.ComponentType<any>> = {
   AI: Bot, API: Plug, Work: Briefcase, Personal: UserIcon,
@@ -598,8 +598,8 @@ function TagIcon({ tag, size = 10 }: { tag: string; size?: number }) {
 
 // ── Tag modal ─────────────────────────────────────────────────────────────────
 const PRESET_TAGS = ["AI", "API", "Work", "Personal", "Research", "Pasted"];
-function TagModal({ diagram, onSave, onClose, tagColorMap, allKnownTags }: { diagram: Diagram; onSave: (tags: string[]) => void; onClose: () => void; tagColorMap: Map<string, typeof TAG_PALETTE[0]>; allKnownTags: string[] }) {
-  const [tags, setTags] = useState<string[]>(diagram.tags ?? []);
+function TagModal({ sequence, onSave, onClose, tagColorMap, allKnownTags }: { sequence: Sequence; onSave: (tags: string[]) => void; onClose: () => void; tagColorMap: Map<string, typeof TAG_PALETTE[0]>; allKnownTags: string[] }) {
+  const [tags, setTags] = useState<string[]>(sequence.tags ?? []);
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { inputRef.current?.focus(); }, []);
@@ -610,7 +610,7 @@ function TagModal({ diagram, onSave, onClose, tagColorMap, allKnownTags }: { dia
   // All selectable options: presets + any existing tags in the system
   const allOptions = useMemo(() => [...new Set([...PRESET_TAGS, ...allKnownTags])].sort(), [allKnownTags]);
 
-  // Local color map — includes new custom tags not yet saved, guaranteed unique
+  // Local color map - includes new custom tags not yet saved, guaranteed unique
   const localColorMap = useMemo(() => {
     const all = [...new Set([...allOptions, ...tags])].sort();
     return buildTagColorMap(all);
@@ -621,7 +621,7 @@ function TagModal({ diagram, onSave, onClose, tagColorMap, allKnownTags }: { dia
       onKeyDown={e => { if (e.key === "Enter" && !input.trim()) { e.stopPropagation(); onSave(tags); onClose(); } }}>
       <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: "28px 32px 24px", width: 620, maxWidth: "90vw", boxShadow: "0 24px 64px rgba(0,0,0,0.12)" }}>
         <h3 style={{ fontSize: 15, fontWeight: 700, color: "#1c1e21", margin: "0 0 4px" }}>Tags</h3>
-        <p style={{ fontSize: 12, color: "#8a8d91", margin: "0 0 18px" }}>{diagram.title}</p>
+        <p style={{ fontSize: 12, color: "#8a8d91", margin: "0 0 18px" }}>{sequence.title}</p>
 
         {/* All tag options */}
         <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 16 }}>
@@ -678,11 +678,11 @@ function RenameModal({ title, onSave, onClose }: { title: string; onSave: (t: st
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.25)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, backdropFilter: "blur(6px)" }}>
       <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{ background: "#ffffff", borderRadius: 16, padding: "28px 28px 24px", width: 440, maxWidth: "92vw", boxShadow: "0 24px 64px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05)" }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: "#1c1e21", margin: "0 0 16px" }}>Rename Diagram</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: "#1c1e21", margin: "0 0 16px" }}>Rename Sequence</h3>
         <input
           ref={inputRef} value={val} onChange={e => setVal(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && val.trim()) onSave(val.trim()); if (e.key === "Escape") onClose(); }}
-          placeholder="Diagram title…"
+          placeholder="Sequence title…"
           style={{ width: "100%", padding: "10px 14px", fontSize: 14, border: "1.5px solid #1c1e21", borderRadius: 10, outline: "none", fontFamily: "inherit", marginBottom: 16, boxSizing: "border-box", color: "#1c1e21", background: "#f4f5f7" }}
         />
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -695,8 +695,8 @@ function RenameModal({ title, onSave, onClose }: { title: string; onSave: (t: st
 }
 
 // ── Card ──────────────────────────────────────────────────────────────────────
-function DiagramCard({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCode, deleting, tagColorMap, isNew, showTags }: {
-  d: Diagram; isShared: boolean;
+function SequenceCard({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCode, deleting, tagColorMap, isNew, showTags }: {
+  d: Sequence; isShared: boolean;
   onOpen: () => void; onDelete: () => void; onRename: () => void; onTag: () => void; onViewCode: () => void;
   deleting: boolean; tagColorMap: Map<string, typeof TAG_PALETTE[0]>; isNew: boolean; showTags: boolean;
 }) {
@@ -711,7 +711,7 @@ function DiagramCard({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCod
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
       tabIndex={0}
       role="button"
-      aria-label={`Open diagram ${d.title}`}
+      aria-label={`Open sequence ${d.title}`}
       className={`dc-card${isNew ? " dc-new-card" : ""}`}
       style={{
         background: "#ffffff",
@@ -741,7 +741,7 @@ function DiagramCard({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCod
         </div>
       </div>
 
-      {/* Tags — hidden on the "All" view to reduce clutter (edit via the hover Tags button) */}
+      {/* Tags - hidden on the "All" view to reduce clutter (edit via the hover Tags button) */}
       {showTags && tags.length > 0 && (
         <div style={{ padding: "0 13px 8px", display: "flex", gap: 4, flexWrap: "wrap" }} role="button" tabIndex={0} aria-label="Edit tags"
           onClick={e => { e.stopPropagation(); onTag(); }}
@@ -752,16 +752,16 @@ function DiagramCard({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCod
         </div>
       )}
 
-      {/* Preview — YouTube thumbnail for YouTube automations, else diagram minimap */}
+      {/* Preview - YouTube thumbnail for YouTube automations, else diagram minimap */}
       <div style={{ padding: "0 12px 13px" }}>
         {d.youtube_id
           ? <YouTubeThumb id={d.youtube_id} title={d.title} />
-          : <DiagramMinimap code={d.code} type={d.diagram_type} />}
+          : <SequenceMinimap code={d.code} type={d.sequence_type} />}
       </div>
 
-      {/* Actions — visible on hover or keyboard focus (:focus-within), always mounted so Tab can reach them */}
+      {/* Actions - visible on hover or keyboard focus (:focus-within), always mounted so Tab can reach them */}
       <div className="dc-card-actions" style={{ position: "absolute", top: 10, right: 10, display: "flex", gap: 4 }} onClick={e => e.stopPropagation()}>
-        <button onClick={onRename} title="Rename" aria-label="Rename diagram"
+        <button onClick={onRename} title="Rename" aria-label="Rename sequence"
           style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #e4e6e8", background: "#ffffff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
           <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#8a8d91" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
@@ -779,7 +779,7 @@ function DiagramCard({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCod
             <path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l7.3-7.3a1 1 0 0 0 0-1.41L12 2z"/><circle cx="7" cy="7" r="1.5" fill="#8a8d91"/>
           </svg>
         </button>
-        <button onClick={onDelete} title="Delete" aria-label="Delete diagram" disabled={deleting}
+        <button onClick={onDelete} title="Delete" aria-label="Delete sequence" disabled={deleting}
           style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #e4e6e8", background: "#ffffff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", opacity: deleting ? 0.5 : 1 }}>
           <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
@@ -790,7 +790,7 @@ function DiagramCard({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCod
   );
 }
 
-// ── Diagram list row (compact "list" view) ───────────────────────────────────
+// ── Sequence list row (compact "list" view) ───────────────────────────────────
 const rowActionBtn = { width: 28, height: 28, borderRadius: 7, border: "1px solid #e4e6e8", background: "#ffffff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", flexShrink: 0 } as const;
 
 // Dynamic letter tile: first letter of the title, colored deterministically from
@@ -800,7 +800,7 @@ function letterFor(title: string) { const m = (title || "").match(/[a-z0-9]/i); 
 function colorFor(title: string) { let h = 0; for (let i = 0; i < title.length; i++) h = (Math.imul(h, 31) + title.charCodeAt(i)) >>> 0; return LETTER_COLORS[h % LETTER_COLORS.length]; }
 function tint(hex: string, a: number) { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; }
 function DiagramRow({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCode, deleting, tagColorMap, isNew, showTags }: {
-  d: Diagram; isShared: boolean;
+  d: Sequence; isShared: boolean;
   onOpen: () => void; onDelete: () => void; onRename: () => void; onTag: () => void; onViewCode: () => void;
   deleting: boolean; tagColorMap: Map<string, typeof TAG_PALETTE[0]>; isNew: boolean; showTags: boolean;
 }) {
@@ -811,7 +811,7 @@ function DiagramRow({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCode
       role="button" tabIndex={0} aria-label={`Open ${d.title}`}
       onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
       style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 14px", borderBottom: "1px solid #eef0f2", cursor: "pointer", background: hovered ? "#f7f8fa" : (isNew ? "#f5f3ff" : "#ffffff"), transition: "background 0.1s" }}>
-      {/* Dynamic letter tile — first letter, colored by title */}
+      {/* Dynamic letter tile - first letter, colored by title */}
       {(() => { const c = colorFor(d.title || ""); return (
         <div style={{ width: 32, height: 32, borderRadius: 8, background: tint(c, 0.14), border: `1px solid ${tint(c, 0.28)}`, color: c, fontSize: 14, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           {letterFor(d.title || "")}
@@ -820,9 +820,9 @@ function DiagramRow({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCode
       {/* Title + meta (tiered) */}
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ fontSize: 13.5, fontWeight: 600, color: "#1c1e21", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.title}</div>
-        <div style={{ fontSize: 11.5, color: "#9aa0a6", marginTop: 1 }}>{d.diagram_type || "sequence"} · {relativeTime(d.updated_at ?? d.created_at)}</div>
+        <div style={{ fontSize: 11.5, color: "#9aa0a6", marginTop: 1 }}>{d.sequence_type || "sequence"} · {relativeTime(d.updated_at ?? d.created_at)}</div>
       </div>
-      {/* Tags — only when a specific tag filter is active */}
+      {/* Tags - only when a specific tag filter is active */}
       {showTags && tags.length > 0 && (
         <div style={{ display: "flex", gap: 4, flexShrink: 0 }} onClick={e => { e.stopPropagation(); onTag(); }}>
           {tags.slice(0, 3).map(t => { const s = tagColorMap.get(t) ?? TAG_PALETTE[0]; return (
@@ -851,12 +851,12 @@ function DiagramRow({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCode
 }
 
 // ── Avatar cache ──────────────────────────────────────────────────────────────
-const LS_KEY = "diagrams_user_cache"; // last known Google profile photo URL
+const LS_KEY = "sequences_user_cache"; // last known Google profile photo URL
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-export default function DiagramsClient({ user, diagrams: initial }: { user: ShellUser; diagrams: Diagram[] }) {
-  const [diagrams, setDiagrams] = useState(initial);
-  useEffect(() => { setDiagrams(initial); }, [initial]);
+export default function SequencesClient({ user, sequences: initial }: { user: ShellUser; sequences: Sequence[] }) {
+  const [sequences, setSequences] = useState(initial);
+  useEffect(() => { setSequences(initial); }, [initial]);
 
   const [shared] = useState<Set<string>>(loadShared);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -867,13 +867,13 @@ export default function DiagramsClient({ user, diagrams: initial }: { user: Shel
   const [avatarSrc, setAvatarSrc] = useState<string | null>(
     user.user_metadata?.avatar_url ?? user.user_metadata?.picture ?? null
   );
-  const [renamingDiagram, setRenamingDiagram] = useState<Diagram | null>(null);
+  const [renamingSequence, setRenamingSequence] = useState<Sequence | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showDocs, setShowDocs] = useState(false);
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
   const [showAIPrompt, setShowAIPrompt] = useState(false);
-  const [taggingDiagram, setTaggingDiagram] = useState<Diagram | null>(null);
-  const [codeDiagram, setCodeDiagram] = useState<Diagram | null>(null);
+  const [taggingSequence, setTaggingSequence] = useState<Sequence | null>(null);
+  const [codeSequence, setCodeSequence] = useState<Sequence | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   // View mode: "list" (default) vs "grid" thumbnails. Persisted per browser.
@@ -884,7 +884,7 @@ export default function DiagramsClient({ user, diagrams: initial }: { user: Shel
   const changeView = (v: "list" | "grid") => { setView(v); try { localStorage.setItem(LS_VIEW, v); } catch {} };
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const handleAICreated = useCallback((d: Diagram) => {
+  const handleAICreated = useCallback((d: Sequence) => {
     setShowAIPrompt(false);
     // Redirect straight to the diagram
     window.location.href = `/?id=${d.id}&imported=1`;
@@ -915,7 +915,7 @@ export default function DiagramsClient({ user, diagrams: initial }: { user: Shel
   // Realtime AI-diagram notifications were removed with the auth migration.
   // (Could be restored later via Pusher.)
 
-  // ── Global paste — save new record + open in editor ───────────────────────
+  // ── Global paste - save new record + open in editor ───────────────────────
   useEffect(() => {
     const onPaste = async (e: ClipboardEvent) => {
       const pasted = e.clipboardData?.getData("text") ?? "";
@@ -924,18 +924,18 @@ export default function DiagramsClient({ user, diagrams: initial }: { user: Shel
       const looksLikeSequence = /^sequenceDiagram/im.test(body);
       if (!looksLikeSequence) return;
       e.preventDefault();
-      showToast("Diagram detected — opening editor…", { color: "#1c1e21" });
+      showToast("Sequence detected - opening editor…", { color: "#1c1e21" });
 
       const titleMatch = pasted.match(/^\s*(?:title|accTitle):?\s+(.+)$/im);
       const title = titleMatch ? titleMatch[1].trim() : "Untitled";
-      const dtype = detectDiagramType(pasted);
+      const dtype = detectSequenceType(pasted);
 
       let savedId: string | null = null;
       try {
-        const res = await fetch("/api/diagrams", {
+        const res = await fetch("/api/sequences", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, code: pasted, diagramType: dtype, tags: ["Pasted"] }),
+          body: JSON.stringify({ title, code: pasted, sequenceType: dtype, tags: ["Pasted"] }),
         });
         if (res.ok) {
           const data = await res.json();
@@ -950,30 +950,30 @@ export default function DiagramsClient({ user, diagrams: initial }: { user: Shel
   }, [user]);
 
   async function saveTitle(id: string, newTitle: string) {
-    const diagram = diagrams.find(d => d.id === id);
+    const sequence = sequences.find(d => d.id === id);
     // Also patch the title: line inside the code so the rendered diagram stays in sync
-    const newCode = diagram?.code
-      ? diagram.code.replace(/^((?:title|accTitle):[ \t]*)(.*)$/m, `$1${newTitle}`)
+    const newCode = sequence?.code
+      ? sequence.code.replace(/^((?:title|accTitle):[ \t]*)(.*)$/m, `$1${newTitle}`)
       : null;
-    const codeChanged = newCode && newCode !== diagram?.code;
-    await fetch(`/api/diagrams/${id}`, {
+    const codeChanged = newCode && newCode !== sequence?.code;
+    await fetch(`/api/sequences/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: newTitle, ...(codeChanged ? { code: newCode } : {}) }),
     });
-    setDiagrams(prev => prev.map(d => d.id === id ? { ...d, title: newTitle, ...(codeChanged ? { code: newCode! } : {}) } : d));
-    setRenamingDiagram(null);
+    setSequences(prev => prev.map(d => d.id === id ? { ...d, title: newTitle, ...(codeChanged ? { code: newCode! } : {}) } : d));
+    setRenamingSequence(null);
   }
 
   async function saveTags(id: string, tags: string[]) {
-    const res = await fetch(`/api/diagrams/${id}`, {
+    const res = await fetch(`/api/sequences/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tags }),
     });
     if (!res.ok) { const e = await res.json().catch(() => ({})); showToast(`Failed to save tags: ${e.error ?? "Unknown error"}`, { color: "#ef4444" }); return; }
-    setDiagrams(prev => prev.map(d => d.id === id ? { ...d, tags } : d));
-    setTaggingDiagram(null);
+    setSequences(prev => prev.map(d => d.id === id ? { ...d, tags } : d));
+    setTaggingSequence(null);
     showToast(tags.length ? `Tags saved: ${tags.join(", ")}` : "Tags cleared", { color: "#1c1e21" });
   }
 
@@ -987,23 +987,23 @@ export default function DiagramsClient({ user, diagrams: initial }: { user: Shel
     });
   }
 
-  function openInEditor(d: Diagram) { window.location.href = `/?id=${d.id}`; }
+  function openInEditor(d: Sequence) { window.location.href = `/?id=${d.id}`; }
 
   async function deleteDiagram(id: string) {
     setConfirmDeleteId(null);
     setDeleting(id);
-    const res = await fetch(`/api/diagrams/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/sequences/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const e = await res.json().catch(() => ({}));
       showToast(`Delete failed: ${e.error ?? "Unknown error"}`, { color: "#ef4444" });
       setDeleting(null); return;
     }
     showToast("Deleted ✓", { color: "#64748b" });
-    setDiagrams(prev => prev.filter(d => d.id !== id));
+    setSequences(prev => prev.filter(d => d.id !== id));
     setDeleting(null);
   }
 
-  const rawTags = useMemo(() => [...new Set(diagrams.flatMap(d => d.tags ?? []))], [diagrams]);
+  const rawTags = useMemo(() => [...new Set(sequences.flatMap(d => d.tags ?? []))], [sequences]);
   const [tagOrder, setTagOrder] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem("tag-order") ?? "[]"); } catch { return []; }
   });
@@ -1035,32 +1035,32 @@ export default function DiagramsClient({ user, diagrams: initial }: { user: Shel
   const tagColorMap = useMemo(() => buildTagColorMap(allTags), [allTags]);
   const tagCounts = useMemo(() => {
     const m = new Map<string, number>();
-    diagrams.forEach(d => (d.tags ?? []).forEach(t => m.set(t, (m.get(t) ?? 0) + 1)));
+    sequences.forEach(d => (d.tags ?? []).forEach(t => m.set(t, (m.get(t) ?? 0) + 1)));
     return m;
-  }, [diagrams]);
+  }, [sequences]);
 
-  const filtered = diagrams.filter(d => {
-    if (search.trim() && !d.title.toLowerCase().includes(search.toLowerCase()) && !d.diagram_type.toLowerCase().includes(search.toLowerCase())) return false;
+  const filtered = sequences.filter(d => {
+    if (search.trim() && !d.title.toLowerCase().includes(search.toLowerCase()) && !d.sequence_type.toLowerCase().includes(search.toLowerCase())) return false;
     if (activeTag === "__no_tag__") return (d.tags ?? []).length === 0;
     if (activeTag) return (d.tags ?? []).includes(activeTag);
-    // "All" view excludes YouTube automations — clean list; view them via the YouTube tab.
+    // "All" view excludes YouTube automations - clean list; view them via the YouTube tab.
     return !(d.tags ?? []).includes("YouTube");
   });
 
-  const byUpdated = (a: Diagram, b: Diagram) => (b.updated_at ?? b.created_at).localeCompare(a.updated_at ?? a.created_at);
-  const allDiagrams = filtered.sort(byUpdated);
+  const byUpdated = (a: Sequence, b: Sequence) => (b.updated_at ?? b.created_at).localeCompare(a.updated_at ?? a.created_at);
+  const allSequences = filtered.sort(byUpdated);
 
-  const cardProps = (d: Diagram) => ({
+  const cardProps = (d: Sequence) => ({
     d, isShared: shared.has(d.id),
     onOpen: () => openInEditor(d),
     onDelete: () => setConfirmDeleteId(d.id),
-    onRename: () => setRenamingDiagram(d),
-    onTag: () => setTaggingDiagram(d),
-    onViewCode: () => setCodeDiagram(d),
+    onRename: () => setRenamingSequence(d),
+    onTag: () => setTaggingSequence(d),
+    onViewCode: () => setCodeSequence(d),
     deleting: deleting === d.id,
     tagColorMap,
     isNew: newCardId === d.id,
-    // On the "All" view the tags are just noise across every card — hide them there;
+    // On the "All" view the tags are just noise across every card - hide them there;
     // show them when a specific tag filter is active.
     showTags: activeTag !== null,
   });
@@ -1143,7 +1143,7 @@ export default function DiagramsClient({ user, diagrams: initial }: { user: Shel
           <div style={{ height: "100%", display: "flex", alignItems: "center", gap: 6, overflowX: "auto" }}>
           <button onClick={() => setActiveTag(null)}
             style={{ padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${!activeTag ? "#1c1e21" : "#e4e6e8"}`, background: !activeTag ? "#1c1e21" : "#f4f5f7", color: !activeTag ? "#fff" : "#65676b", flexShrink: 0, transition: "all 0.12s", display: "flex", alignItems: "center", gap: 5 }}>
-            All <span style={{ background: !activeTag ? "rgba(255,255,255,0.25)" : "#e4e6e8", borderRadius: 20, padding: "0 5px", fontSize: 10 }}>{diagrams.filter(d => !(d.tags ?? []).includes("YouTube")).length}</span>
+            All <span style={{ background: !activeTag ? "rgba(255,255,255,0.25)" : "#e4e6e8", borderRadius: 20, padding: "0 5px", fontSize: 10 }}>{sequences.filter(d => !(d.tags ?? []).includes("YouTube")).length}</span>
           </button>
           {allTags.map(t => { const s = tagColorMap.get(t)!; const active = activeTag === t; const count = tagCounts.get(t) ?? 0; return (
             <button key={t} onClick={() => setActiveTag(active ? null : t)}
@@ -1156,7 +1156,7 @@ export default function DiagramsClient({ user, diagrams: initial }: { user: Shel
           <button onClick={() => setActiveTag(activeTag === "__no_tag__" ? null : "__no_tag__")}
             style={{ padding: "3px 10px 3px 7px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: "pointer", border: `1.5px solid #d1d5db`, background: activeTag === "__no_tag__" ? "#d1d5db" : "#fff", color: "#65676b", flexShrink: 0, transition: "all 0.15s", display: "flex", alignItems: "center", gap: 4 }}>
             <Tag size={10} strokeWidth={2.5} style={{ flexShrink: 0 }} />
-            No Tag <span style={{ background: activeTag === "__no_tag__" ? "rgba(255,255,255,0.25)" : "#e4e6e8", borderRadius: 20, padding: "0 5px", fontSize: 10 }}>{diagrams.filter(d => (d.tags ?? []).length === 0).length}</span>
+            No Tag <span style={{ background: activeTag === "__no_tag__" ? "rgba(255,255,255,0.25)" : "#e4e6e8", borderRadius: 20, padding: "0 5px", fontSize: 10 }}>{sequences.filter(d => (d.tags ?? []).length === 0).length}</span>
           </button>
           </div>
         </div></div>
@@ -1170,17 +1170,17 @@ export default function DiagramsClient({ user, diagrams: initial }: { user: Shel
             <div style={{ width: 48, height: 48, borderRadius: 12, background: "#e4e6e8", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
               <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#8a8d91" strokeWidth={1.5} strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
             </div>
-            <p style={{ fontSize: 14, color: "#1c1e21", fontWeight: 600, margin: 0 }}>{search ? "No diagrams found" : "No diagrams yet"}</p>
+            <p style={{ fontSize: 14, color: "#1c1e21", fontWeight: 600, margin: 0 }}>{search ? "No sequences found" : "No sequences yet"}</p>
             <p style={{ fontSize: 13, color: "#8a8d91", marginTop: 6 }}>{search ? "Try a different search" : "Paste diagram code to get started"}</p>
           </div>
         )}
 
-        {allDiagrams.length > 0 && (
+        {allSequences.length > 0 && (
           <section>
             {/* Toolbar: count + list/grid toggle */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
               <span style={{ fontSize: 12.5, color: "#8a8d91", fontWeight: 500 }}>
-                {allDiagrams.length} diagram{allDiagrams.length === 1 ? "" : "s"}
+                {allSequences.length} diagram{allSequences.length === 1 ? "" : "s"}
               </span>
               <div style={{ display: "flex", gap: 2, background: "#eceef1", borderRadius: 9, padding: 3 }}>
                 {([
@@ -1200,11 +1200,11 @@ export default function DiagramsClient({ user, diagrams: initial }: { user: Shel
 
             {view === "grid" ? (
               <div className="dc-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
-                {allDiagrams.map(d => <DiagramCard key={d.id} {...cardProps(d)} />)}
+                {allSequences.map(d => <SequenceCard key={d.id} {...cardProps(d)} />)}
               </div>
             ) : (
               <div style={{ background: "#ffffff", border: "1px solid #e4e6e8", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 3px rgba(15,23,42,0.05)" }}>
-                {allDiagrams.map(d => <DiagramRow key={d.id} {...cardProps(d)} />)}
+                {allSequences.map(d => <DiagramRow key={d.id} {...cardProps(d)} />)}
               </div>
             )}
           </section>
@@ -1219,13 +1219,13 @@ export default function DiagramsClient({ user, diagrams: initial }: { user: Shel
       >✦</button>
 
       {showAIPrompt && <AIPromptModal onClose={() => setShowAIPrompt(false)} onCreated={handleAICreated} />}
-      {taggingDiagram && <TagModal diagram={taggingDiagram} onSave={tags => saveTags(taggingDiagram.id, tags)} onClose={() => setTaggingDiagram(null)} tagColorMap={tagColorMap} allKnownTags={allTags} />}
+      {taggingSequence && <TagModal sequence={taggingSequence} onSave={tags => saveTags(taggingSequence.id, tags)} onClose={() => setTaggingSequence(null)} tagColorMap={tagColorMap} allKnownTags={allTags} />}
 
-      {renamingDiagram && (
+      {renamingSequence && (
         <RenameModal
-          title={renamingDiagram.title}
-          onSave={t => saveTitle(renamingDiagram.id, t)}
-          onClose={() => setRenamingDiagram(null)}
+          title={renamingSequence.title}
+          onSave={t => saveTitle(renamingSequence.id, t)}
+          onClose={() => setRenamingSequence(null)}
         />
       )}
 
@@ -1249,11 +1249,11 @@ export default function DiagramsClient({ user, diagrams: initial }: { user: Shel
               <h2 style={{ fontSize: 15, fontWeight: 700, color: "#1c1e21", margin: 0 }}>Import Formats</h2>
               <button onClick={() => setShowDocs(false)} aria-label="Close" style={{ background: "none", border: "none", color: "#8a8d91", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>✕</button>
             </div>
-            <p style={{ fontSize: 12, color: "#65676b", margin: "0 0 20px", lineHeight: 1.6 }}>Three ways to create a diagram. All sequence diagrams auto-save on paste; use <kbd style={{ background: "#f4f5f7", border: "1px solid #e4e6e8", borderRadius: 4, padding: "1px 6px", fontSize: 11, color: "#1c1e21" }}>⌘S</kbd> to save edits.</p>
+            <p style={{ fontSize: 12, color: "#65676b", margin: "0 0 20px", lineHeight: 1.6 }}>Three ways to create a diagram. All sequence sequences auto-save on paste; use <kbd style={{ background: "#f4f5f7", border: "1px solid #e4e6e8", borderRadius: 4, padding: "1px 6px", fontSize: 11, color: "#1c1e21" }}>⌘S</kbd> to save edits.</p>
             {[
               { label: "1. Generate with AI", tag: "Built-in", tagColor: "#a855f7", code: `Click the ✦ button on the index page and describe your diagram\nin plain English. Claude generates the Mermaid code and saves\nit to your library automatically.\n\nExample prompt: "OAuth 2.0 login flow between user, frontend,\nand auth server"` },
               { label: "2. Paste (⌘V) anywhere", tag: "Auto-detect", tagColor: "#16a34a", code: `sequenceDiagram\n  participant A as Alice\n  participant B as Bob\n  A->>B: Hello!\n  B-->>A: Hi there` },
-              { label: "3. POST via API", tag: "External agents", tagColor: "#6366f1", code: `curl -X POST ${process.env.NEXT_PUBLIC_APP_URL ?? "https://diagrams-bheng.vercel.app"}/api/ai/diagrams \\\n  -H "Authorization: Bearer $AI_API_SECRET" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "title": "My Diagram Title",\n    "diagramType": "sequence",\n    "code": "---\\ntitle: My Diagram\\n---\\nsequenceDiagram\\n  participant A as 🧑 User\\n  participant B as ⚙️ Server\\n  A->>B: Request\\n  B-->>A: Response"\n  }'` },
+              { label: "3. POST via API", tag: "External agents", tagColor: "#6366f1", code: `curl -X POST ${process.env.NEXT_PUBLIC_APP_URL ?? "https://sequences-bheng.vercel.app"}/api/ai/sequences \\\n  -H "Authorization: Bearer $SEQUENCES_API_SECRET" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "title": "My Sequence Title",\n    "sequenceType": "sequence",\n    "code": "---\\ntitle: My Sequence\\n---\\nsequenceDiagram\\n  participant A as 🧑 User\\n  participant B as ⚙️ Server\\n  A->>B: Request\\n  B-->>A: Response"\n  }'` },
             ].map(({ label, tag, tagColor, code }) => (
               <div key={label} style={{ marginBottom: 20 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
@@ -1274,8 +1274,8 @@ export default function DiagramsClient({ user, diagrams: initial }: { user: Shel
       )}
 
       {/* ── Code slide-in panel (from left) ── */}
-      {codeDiagram && (
-        <div onClick={() => { setCodeDiagram(null); setCodeCopied(false); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.25)", zIndex: 1000, backdropFilter: "blur(4px)" }}>
+      {codeSequence && (
+        <div onClick={() => { setCodeSequence(null); setCodeCopied(false); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.25)", zIndex: 1000, backdropFilter: "blur(4px)" }}>
           <div role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{
             position: "absolute", left: 0, top: 0, bottom: 0, width: 420, maxWidth: "90vw",
             background: "#ffffff", boxShadow: "8px 0 32px rgba(0,0,0,0.12)",
@@ -1287,19 +1287,19 @@ export default function DiagramsClient({ user, diagrams: initial }: { user: Shel
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#1c1e21" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
               </svg>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#1c1e21", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{codeDiagram.title}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#1c1e21", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{codeSequence.title}</span>
               <button
-                onClick={() => { navigator.clipboard.writeText(codeDiagram.code); setCodeCopied(true); setTimeout(() => setCodeCopied(false), 2000); }}
+                onClick={() => { navigator.clipboard.writeText(codeSequence.code); setCodeCopied(true); setTimeout(() => setCodeCopied(false), 2000); }}
                 style={{ background: codeCopied ? "#22c55e" : "#f4f5f7", border: "1px solid #e4e6e8", borderRadius: 6, padding: "4px 12px", fontSize: 11, fontWeight: 600, color: codeCopied ? "#fff" : "#65676b", cursor: "pointer", transition: "all 0.15s", flexShrink: 0 }}
               >{codeCopied ? "Copied!" : "Copy"}</button>
-              <button onClick={() => { setCodeDiagram(null); setCodeCopied(false); }} aria-label="Close" style={{ background: "none", border: "none", color: "#8a8d91", cursor: "pointer", fontSize: 18, lineHeight: 1, flexShrink: 0 }}>✕</button>
+              <button onClick={() => { setCodeSequence(null); setCodeCopied(false); }} aria-label="Close" style={{ background: "none", border: "none", color: "#8a8d91", cursor: "pointer", fontSize: 18, lineHeight: 1, flexShrink: 0 }}>✕</button>
             </div>
             {/* Code */}
             <div style={{ flex: 1, overflow: "auto", padding: 0 }}>
               <pre style={{
                 margin: 0, padding: "16px 20px", fontSize: 12, lineHeight: 1.75, color: "#1c1e21",
                 fontFamily: "'JetBrains Mono', 'Fira Code', monospace", whiteSpace: "pre-wrap", wordBreak: "break-word",
-              }}>{codeDiagram.code}</pre>
+              }}>{codeSequence.code}</pre>
             </div>
           </div>
         </div>

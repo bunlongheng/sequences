@@ -9,10 +9,10 @@ export function toSlug(title: string): string {
 
 // Returns a slug unique to (user_id, slug) within the diagrams table.
 // One SQL round-trip instead of N: fetch all existing collisions, pick the first free counter.
-export async function uniqueDiagramSlug(userId: string, title: string): Promise<string> {
+export async function uniqueSequenceSlug(userId: string, title: string): Promise<string> {
   const base = toSlug(title);
   const { rows } = await db.query(
-    "SELECT slug FROM diagrams WHERE user_id = $1 AND (slug = $2 OR slug LIKE $3)",
+    "SELECT slug FROM sequences WHERE user_id = $1 AND (slug = $2 OR slug LIKE $3)",
     [userId, base, `${base}-%`],
   );
   if (rows.length === 0) return base;

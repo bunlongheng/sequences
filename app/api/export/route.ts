@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid diagram ID" }, { status: 400, headers: CORS });
   }
 
-  const { rows } = await db.query("SELECT code, settings, title FROM diagrams WHERE id = $1", [id]);
+  const { rows } = await db.query("SELECT code, settings, title FROM sequences WHERE id = $1", [id]);
   if (!rows.length) return NextResponse.json({ error: "Diagram not found" }, { status: 404, headers: CORS });
 
   const { code, settings, title } = rows[0];
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     settings: { opts },
     format: "mermaid",
     hint: "To get a rendered PNG/SVG, open the diagram URL in a browser and use the export button, or use the /d/[id] public route.",
-    url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://diagrams-bheng.vercel.app"}/?id=${id}`,
+    url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://sequences-bheng.vercel.app"}/?id=${id}`,
   }, { headers: CORS });
 }
 

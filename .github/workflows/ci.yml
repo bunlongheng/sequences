@@ -40,10 +40,10 @@ jobs:
       # LOCAL_DEV enables the localhost owner-bypass (host-gated in lib/is-local),
       # so /api/auth/me reports authorized. OWNER_USER_ID is deliberately UNSET:
       # the bypass says "owner" but the data routes cannot resolve an owner row,
-      # so /api/diagrams still returns 401 - exactly what the e2e suite asserts.
+      # so /api/sequences still returns 401 - exactly what the e2e suite asserts.
       LOCAL_DEV: "true"
-      NEXT_PUBLIC_APP_URL: https://diagrams-bheng.vercel.app
-      NEXT_PUBLIC_SITE_URL: https://diagrams-bheng.vercel.app
+      NEXT_PUBLIC_APP_URL: https://sequences-bheng.vercel.app
+      NEXT_PUBLIC_SITE_URL: https://sequences-bheng.vercel.app
 
     steps:
       - uses: actions/checkout@v4
@@ -56,7 +56,7 @@ jobs:
       - run: npm ci
 
       # Throwaway values, generated fresh each run - never real credentials.
-      # AI_API_SECRET must be set (unset makes /api/ai/diagrams return 500 instead
+      # AI_API_SECRET must be set (unset makes /api/ai/sequences return 500 instead
       # of the 401 the suite asserts); AUTH_SECRET/GOOGLE_CLIENT_SECRET only need
       # to be non-empty for NextAuth to construct.
       - name: Generate throwaway e2e secrets

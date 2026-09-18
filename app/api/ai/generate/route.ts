@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { authorizeOwner, ownerId } from "@/lib/auth-owner";
 import db from "@/lib/db";
-import { uniqueDiagramSlug } from "@/lib/slugs";
-import { embedTitleInCode } from "@/lib/diagram-code";
+import { uniqueSequenceSlug } from "@/lib/slugs";
+import { embedTitleInCode } from "@/lib/sequence-code";
 
 const SYSTEM = `You are an expert Mermaid sequence diagram generator.
 
@@ -11,7 +11,7 @@ Given a user prompt, return ONLY a valid JSON object — no markdown, no explana
 {
   "title": "<concise diagram title>",
   "code": "<full mermaid sequenceDiagram code>",
-  "diagramType": "sequence"
+  "sequenceType": "sequence"
 }
 
 CRITICAL rules:
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   // ── Auth: ADMIN ONLY (local dev bypass or the logged-in owner session).
   //    The Bearer API secret is intentionally NOT accepted here: AI generation
   //    spends Anthropic credits and is an owner-only feature. The public API is
-  //    render-only (POST /api/ai/diagrams with a mermaid/JSON body) - it never
+  //    render-only (POST /api/ai/sequences with a mermaid/JSON body) - it never
   //    calls Claude, so public callers cannot drain Anthropic dollars.
   if (!(await authorizeOwner(req, { allowBearer: false }))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -74,20 +74,20 @@ export async function POST(req: NextRequest) {
   const ownerUserId = ownerId();
   if (!ownerUserId) return NextResponse.json({ error: "OWNER_USER_ID not configured" }, { status: 500 });
 
-  const slug = await uniqueDiagramSlug(ownerUserId, title);
+  const slug = await uniqueSequenceSlug(ownerUserId, title);
 
   // Ensure title is embedded in the code
   const finalCode = embedTitleInCode(code, title);
 
   const settings = { opts: { boxOverlay: "gloss", iconMode: "icons" } };
   const { rows } = await db.query(
-    "INSERT INTO diagrams (user_id, title, slug, code, diagram_type, tags, settings, tokens_out) VALUES ($1, $2, $3, $4, $5, $6::text[], $7, $8) RETURNING *",
+    "INSERT INTO sequences (user_id, title, slug, code, sequence_type, tags, settings, tokens_out) VALUES ($1, $2, $3, $4, $5, $6::text[], $7, $8) RETURNING *",
     [ownerUserId, title.trim(), slug, finalCode, "sequence", ["AI"], JSON.stringify(settings), tokensOut]
   );
 
   if (rows.length === 0) return NextResponse.json({ error: "Insert failed" }, { status: 500 });
   const diagram = rows[0];
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://diagrams-bheng.vercel.app";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://sequences-bheng.vercel.app";
   return NextResponse.json({ ...diagram, url: `${baseUrl}/d/${diagram.id}`, svg: `${baseUrl}/svg/${diagram.id}`, editor: `${baseUrl}/?id=${diagram.id}` }, { status: 201 });
 }

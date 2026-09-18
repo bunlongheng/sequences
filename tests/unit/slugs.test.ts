@@ -5,7 +5,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import db from "@/lib/db";
-import { toSlug, uniqueDiagramSlug } from "@/lib/slugs";
+import { toSlug, uniqueSequenceSlug } from "@/lib/slugs";
 
 // ---------------------------------------------------------------------------
 // toSlug
@@ -57,16 +57,16 @@ describe("toSlug", () => {
 });
 
 // ---------------------------------------------------------------------------
-// uniqueDiagramSlug
+// uniqueSequenceSlug
 // ---------------------------------------------------------------------------
-describe("uniqueDiagramSlug", () => {
+describe("uniqueSequenceSlug", () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
 
   it("returns the base slug when no rows exist", async () => {
     (db.query as ReturnType<typeof vi.fn>).mockResolvedValue({ rows: [] });
-    const result = await uniqueDiagramSlug("user-1", "Hello World");
+    const result = await uniqueSequenceSlug("user-1", "Hello World");
     expect(result).toBe("hello-world");
   });
 
@@ -74,7 +74,7 @@ describe("uniqueDiagramSlug", () => {
     (db.query as ReturnType<typeof vi.fn>).mockResolvedValue({
       rows: [{ slug: "hello-world" }],
     });
-    const result = await uniqueDiagramSlug("user-1", "Hello World");
+    const result = await uniqueSequenceSlug("user-1", "Hello World");
     expect(result).toBe("hello-world-2");
   });
 
@@ -82,7 +82,7 @@ describe("uniqueDiagramSlug", () => {
     (db.query as ReturnType<typeof vi.fn>).mockResolvedValue({
       rows: [{ slug: "hello-world" }, { slug: "hello-world-2" }],
     });
-    const result = await uniqueDiagramSlug("user-1", "Hello World");
+    const result = await uniqueSequenceSlug("user-1", "Hello World");
     expect(result).toBe("hello-world-3");
   });
 
@@ -90,7 +90,7 @@ describe("uniqueDiagramSlug", () => {
     (db.query as ReturnType<typeof vi.fn>).mockResolvedValue({
       rows: [{ slug: "hello-world-other" }],
     });
-    const result = await uniqueDiagramSlug("user-1", "Hello World");
+    const result = await uniqueSequenceSlug("user-1", "Hello World");
     expect(result).toBe("hello-world");
   });
 
@@ -103,15 +103,15 @@ describe("uniqueDiagramSlug", () => {
         { slug: "my-diagram-4" },
       ],
     });
-    const result = await uniqueDiagramSlug("user-1", "My Diagram");
+    const result = await uniqueSequenceSlug("user-1", "My Diagram");
     expect(result).toBe("my-diagram-3");
   });
 
   it("calls db.query with the correct parameters", async () => {
     (db.query as ReturnType<typeof vi.fn>).mockResolvedValue({ rows: [] });
-    await uniqueDiagramSlug("user-abc", "Test Title");
+    await uniqueSequenceSlug("user-abc", "Test Title");
     expect(db.query).toHaveBeenCalledWith(
-      "SELECT slug FROM diagrams WHERE user_id = $1 AND (slug = $2 OR slug LIKE $3)",
+      "SELECT slug FROM sequences WHERE user_id = $1 AND (slug = $2 OR slug LIKE $3)",
       ["user-abc", "test-title", "test-title-%"],
     );
   });

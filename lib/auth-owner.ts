@@ -6,15 +6,24 @@ import { isLocal } from "@/lib/is-local";
 // secret for scripts/AI agents, then the NextAuth owner-email session.
 const OWNER_EMAIL = (process.env.OWNER_EMAIL ?? process.env.ALLOWED_EMAIL)?.trim().toLowerCase();
 
-// Bearer check shared by every API route: accepts the primary AI_API_SECRET or
-// the revocable partner key AI_API_SECRET_PARTNER. Constant-time compare per
+// Bearer check shared by every API route: accepts the primary SEQUENCES_API_SECRET
+// or the revocable partner key SEQUENCES_API_SECRET_PARTNER. Two generations of
+// legacy names are still honored so nothing has to be rotated in lockstep with a
+// deploy: DIAGRAMS_* (pre-rename) and AI_* (original). Constant-time compare per
 // secret, length-checked. Takes a Request or a raw Authorization header value.
 export function bearerOk(reqOrHeader: Request | string | null): boolean {
   const header = typeof reqOrHeader === "string"
     ? reqOrHeader
     : reqOrHeader?.headers.get("authorization") ?? "";
   if (!header.startsWith("Bearer ")) return false;
-  const secrets = [process.env.AI_API_SECRET, process.env.AI_API_SECRET_PARTNER].filter(Boolean) as string[];
+  const secrets = [
+    process.env.SEQUENCES_API_SECRET,
+    process.env.SEQUENCES_API_SECRET_PARTNER,
+    process.env.DIAGRAMS_API_SECRET,          // legacy alias (pre-rename)
+    process.env.DIAGRAMS_API_SECRET_PARTNER,  // legacy alias (pre-rename)
+    process.env.AI_API_SECRET,                // legacy alias (original)
+    process.env.AI_API_SECRET_PARTNER,        // legacy alias (original)
+  ].filter(Boolean) as string[];
   for (const secret of secrets) {
     const expected = `Bearer ${secret}`;
     if (header.length === expected.length) {

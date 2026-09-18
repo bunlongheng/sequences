@@ -13,7 +13,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "text-summary", "html", "json-summary"],
       // Coverage targets the testable units. The two giant client components
-      // (page.tsx ~2157 lines, DiagramsClient.tsx ~1224 lines) are exercised by
+      // (page.tsx ~2157 lines, SequencesClient.tsx ~1224 lines) are exercised by
       // Playwright E2E, not unit coverage, so they are excluded from the v8 denominator.
       include: [
         "lib/**/*.ts",
@@ -23,7 +23,7 @@ export default defineConfig({
         "app/CuteToast.tsx",
         "app/SignInButton.tsx",
         "app/MermaidRenderer.tsx",
-        "app/DiagramsShell.tsx",
+        "app/SequencesShell.tsx",
       ],
       // lib/db.ts is a thin pg Pool; the NextAuth catch-all is a 2-line
       // re-export that pulls the whole next-auth runtime — both excluded.
