@@ -3,25 +3,33 @@
  *
  * Tests all route handlers without hitting real DB or Anthropic.
  * Auth is via @/lib/auth-owner mocks.
- * The ai/diagrams and [id]/export routes read AI_SECRET at module scope,
+ * The ai/sequences and [id]/export routes read the API secret at module scope,
  * so they require dynamic import after vi.stubEnv + vi.resetModules.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+// Every env name bearerOk accepts: the primary pair plus the two generations of
+// legacy aliases kept for backward compatibility after the Sequences rename.
+const SECRET_ENV_NAMES = [
+  "SEQUENCES_API_SECRET", "SEQUENCES_API_SECRET_PARTNER",
+  "DIAGRAMS_API_SECRET", "DIAGRAMS_API_SECRET_PARTNER",
+  "AI_API_SECRET", "AI_API_SECRET_PARTNER",
+] as const;
+
 // ── Module-level mocks (hoisted before imports) ──────────────────────────────
 vi.mock("@/lib/auth-owner", () => ({
   authorizeOwner: vi.fn(),
   resolveOwnerId: vi.fn(),
   ownerId: vi.fn(),
-  // Mirrors the real bearerOk: compares the header against AI_API_SECRET /
-  // AI_API_SECRET_PARTNER at call time, so vi.stubEnv drives it per-test.
+  // Mirrors the real bearerOk: compares the header against every accepted
+  // secret name at call time, so vi.stubEnv drives it per-test.
   bearerOk: (reqOrHeader: Request | string | null) => {
     const header = typeof reqOrHeader === "string"
       ? reqOrHeader
       : reqOrHeader?.headers.get("authorization") ?? "";
-    const secrets = [process.env.AI_API_SECRET, process.env.AI_API_SECRET_PARTNER].filter(Boolean);
+    const secrets = SECRET_ENV_NAMES.map((k) => process.env[k]).filter(Boolean);
     return secrets.some(s => header === `Bearer ${s}`);
   },
 }));
@@ -422,8 +430,11 @@ describe("GET /api/auth/me", () => {
 describe("POST /api/ai/sequences", () => {
   const SECRET = "topsecret";
 
-  it("returns 500 when AI_API_SECRET is not set", async () => {
-    vi.stubEnv("AI_API_SECRET", "");
+  it("returns 500 when no API secret is configured", async () => {
+    // The route accepts SEQUENCES_* plus the DIAGRAMS_*/AI_* legacy aliases, so
+    // "not configured" means every one of them is empty. Clearing only one left
+    // CI green-lit by whichever name the workflow happened to export.
+    for (const k of SECRET_ENV_NAMES) vi.stubEnv(k, "");
     vi.resetModules();
     const { POST } = await import("@/app/api/ai/sequences/route");
     const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
@@ -437,7 +448,7 @@ describe("POST /api/ai/sequences", () => {
   });
 
   it("returns 401 when bearer token is wrong", async () => {
-    vi.stubEnv("AI_API_SECRET", SECRET);
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
     vi.resetModules();
     const { POST } = await import("@/app/api/ai/sequences/route");
     const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
@@ -451,7 +462,7 @@ describe("POST /api/ai/sequences", () => {
   });
 
   it("returns 400 when body is invalid JSON", async () => {
-    vi.stubEnv("AI_API_SECRET", SECRET);
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
     vi.resetModules();
     const { POST } = await import("@/app/api/ai/sequences/route");
     const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
@@ -465,7 +476,7 @@ describe("POST /api/ai/sequences", () => {
   });
 
   it("returns 400 for unsupported sequenceType (flowchart)", async () => {
-    vi.stubEnv("AI_API_SECRET", SECRET);
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
     vi.resetModules();
     const { POST } = await import("@/app/api/ai/sequences/route");
     const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
@@ -479,7 +490,7 @@ describe("POST /api/ai/sequences", () => {
   });
 
   it("returns 400 when code does not contain sequenceDiagram", async () => {
-    vi.stubEnv("AI_API_SECRET", SECRET);
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
     vi.resetModules();
     const { POST } = await import("@/app/api/ai/sequences/route");
     const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
@@ -493,7 +504,7 @@ describe("POST /api/ai/sequences", () => {
   });
 
   it("returns 400 when title is missing", async () => {
-    vi.stubEnv("AI_API_SECRET", SECRET);
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
     vi.resetModules();
     const { POST } = await import("@/app/api/ai/sequences/route");
     const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
@@ -507,7 +518,7 @@ describe("POST /api/ai/sequences", () => {
   });
 
   it("returns 400 when code is missing", async () => {
-    vi.stubEnv("AI_API_SECRET", SECRET);
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
     vi.resetModules();
     const { POST } = await import("@/app/api/ai/sequences/route");
     const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
@@ -521,7 +532,7 @@ describe("POST /api/ai/sequences", () => {
   });
 
   it("returns 201 with id/url/svg_url on a successful insert", async () => {
-    vi.stubEnv("AI_API_SECRET", SECRET);
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
     vi.resetModules();
     mockOwnerId.mockReturnValue("owner-uuid");
     q.mockResolvedValue({ rows: [{ id: "d-api-1" }], rowCount: 1 });
@@ -544,7 +555,7 @@ describe("POST /api/ai/sequences", () => {
   });
 
   it("returns 201 with inline script-free svg when ?format=svg is requested", async () => {
-    vi.stubEnv("AI_API_SECRET", SECRET);
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
     vi.resetModules();
     mockOwnerId.mockReturnValue("owner-uuid");
     q.mockResolvedValue({ rows: [{ id: "d-api-3" }], rowCount: 1 });
@@ -566,9 +577,9 @@ describe("POST /api/ai/sequences", () => {
     vi.unstubAllEnvs();
   });
 
-  it("accepts the revocable partner key AI_API_SECRET_PARTNER", async () => {
-    vi.stubEnv("AI_API_SECRET", SECRET);
-    vi.stubEnv("AI_API_SECRET_PARTNER", "partnerkey");
+  it("accepts the revocable partner key SEQUENCES_API_SECRET_PARTNER", async () => {
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
+    vi.stubEnv("SEQUENCES_API_SECRET_PARTNER", "partnerkey");
     vi.resetModules();
     mockOwnerId.mockReturnValue("owner-uuid");
     q.mockResolvedValue({ rows: [{ id: "d-api-4" }], rowCount: 1 });
@@ -585,7 +596,7 @@ describe("POST /api/ai/sequences", () => {
   });
 
   it("forces tags to [\"API\"] regardless of any tags field the caller sends", async () => {
-    vi.stubEnv("AI_API_SECRET", SECRET);
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
     vi.resetModules();
     mockOwnerId.mockReturnValue("owner-uuid");
     q.mockResolvedValue({ rows: [{ id: "d-api-2" }], rowCount: 1 });
@@ -727,8 +738,11 @@ describe("GET /svg/[id]", () => {
 describe("GET /api/sequences/[id]/export", () => {
   const SECRET = "exportsecret";
 
-  it("returns 500 when AI_API_SECRET is not set", async () => {
-    vi.stubEnv("AI_API_SECRET", "");
+  it("returns 500 when no API secret is configured", async () => {
+    // The route accepts SEQUENCES_* plus the DIAGRAMS_*/AI_* legacy aliases, so
+    // "not configured" means every one of them is empty. Clearing only one left
+    // CI green-lit by whichever name the workflow happened to export.
+    for (const k of SECRET_ENV_NAMES) vi.stubEnv(k, "");
     vi.resetModules();
     const { GET } = await import("@/app/api/sequences/[id]/export/route");
     const req = new NextRequest("http://localhost:3002/api/sequences/d1/export", {
@@ -740,7 +754,7 @@ describe("GET /api/sequences/[id]/export", () => {
   });
 
   it("returns 401 when bearer token is wrong", async () => {
-    vi.stubEnv("AI_API_SECRET", SECRET);
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
     vi.resetModules();
     const { GET } = await import("@/app/api/sequences/[id]/export/route");
     const req = new NextRequest("http://localhost:3002/api/sequences/d1/export", {
@@ -752,7 +766,7 @@ describe("GET /api/sequences/[id]/export", () => {
   });
 
   it("returns 404 when diagram not found", async () => {
-    vi.stubEnv("AI_API_SECRET", SECRET);
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
     vi.resetModules();
     q.mockResolvedValue({ rows: [], rowCount: 0 });
     const { GET } = await import("@/app/api/sequences/[id]/export/route");
@@ -765,7 +779,7 @@ describe("GET /api/sequences/[id]/export", () => {
   });
 
   it("returns 200 with id/title/code when diagram exists (svg may be null)", async () => {
-    vi.stubEnv("AI_API_SECRET", SECRET);
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
     vi.resetModules();
     q.mockResolvedValue({
       rows: [{
