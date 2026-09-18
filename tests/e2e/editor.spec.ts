@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * Editor tests - /?new opens the DiagramEditor (client-rendered, unauthenticated).
+ * Editor tests - /?new opens the SequenceEditor (client-rendered, unauthenticated).
  *
  * When unauthenticated, the auth state check resolves to no session,
  * so setViewMode(true) is called and the presenter-mode canvas renders
@@ -45,7 +45,7 @@ test.describe("Editor -- /?new (unauthenticated)", () => {
     // known SSR/client hydration mismatch in the viewMode branch (server
     // renders one mode, client flips to presenter mode after the auth check
     // resolves). This is a known issue, not fixed here -- it's out of scope
-    // for this pass and would require changes to app/DiagramEditor.tsx.
+    // for this pass and would require changes to app/SequenceEditor.tsx.
     const realErrors = uncaughtErrors.filter(
       (e) =>
         !e.includes("ResizeObserver") &&

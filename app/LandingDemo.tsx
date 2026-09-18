@@ -2,14 +2,14 @@
 import Image from "next/image";
 import SocialFooter from "./SocialFooter";
 
-type Demo = { id: string; title: string; diagram_type: string };
+type Demo = { id: string; title: string; sequence_type: string };
 
 // Public landing shown to logged-out visitors: a curated gallery of the best
-// public diagrams as a live demo, on the app's on-brand animated backdrop, with
+// public sequences as a live demo, on the app's on-brand animated backdrop, with
 // a single Sign in call to action. No login is forced — strangers browse freely;
 // only creating your own needs an account (/login).
-export default function LandingDemo({ diagrams }: { diagrams: Demo[] }) {
-  const demos = diagrams.slice(0, 8);
+export default function LandingDemo({ sequences }: { sequences: Demo[] }) {
+  const demos = sequences.slice(0, 8);
 
   return (
     <div style={{

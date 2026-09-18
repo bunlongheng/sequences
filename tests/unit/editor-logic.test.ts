@@ -1,6 +1,6 @@
 /**
  * Unit tests for lib/editor-logic.ts - the pure branch logic extracted from the
- * two large client components (DiagramEditor, DiagramsClient): title parsing,
+ * two large client components (SequenceEditor, SequencesClient): title parsing,
  * keyboard zoom stepping, undo capping, relative time, and tag color assignment.
  * These paths were previously exercised only by Playwright smoke.
  */

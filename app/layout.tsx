@@ -20,29 +20,29 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Diagrams",
+  title: "Sequences",
   description:
-    "Beautiful diagram generator — paste any diagram syntax and get a polished visual instantly.",
+    "Beautiful sequence generator - paste any Mermaid syntax and get a polished visual instantly.",
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://diagrams-bheng.vercel.app",
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://sequences-bheng.vercel.app",
   ),
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Diagrams",
+    title: "Sequences",
   },
   openGraph: {
-    title: "Diagrams — Sequence Diagram Generator",
-    description: "Paste diagram syntax, get beautiful diagrams instantly.",
+    title: "Sequences - Sequence Diagram Generator",
+    description: "Paste Mermaid syntax, get beautiful sequences instantly.",
     type: "website",
     url:
-      process.env.NEXT_PUBLIC_SITE_URL ?? "https://diagrams-bheng.vercel.app",
+      process.env.NEXT_PUBLIC_SITE_URL ?? "https://sequences-bheng.vercel.app",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Diagrams — Sequence Diagram Generator",
-    description: "Paste diagram syntax, get beautiful diagrams instantly.",
+    title: "Sequences - Sequence Diagram Generator",
+    description: "Paste Mermaid syntax, get beautiful sequences instantly.",
   },
 };
 

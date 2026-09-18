@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      BASE_URL: https://diagrams-bheng.vercel.app
+      BASE_URL: https://sequences-bheng.vercel.app
     steps:
       - name: Health endpoint is 200 + ok:true (auth config + DB)
         run: |
@@ -50,8 +50,8 @@ jobs:
           # Bearer gate rejects unauthorized callers. Uses a bad token on purpose
           # so it NEVER creates a diagram (no row spam - see the polling rule).
           code=$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' \
-            -X POST "$BASE_URL/api/ai/diagrams" \
+            -X POST "$BASE_URL/api/ai/sequences" \
             -H "Authorization: Bearer monitor-not-a-real-token" \
             -H "Content-Type: application/json" \
             -d '{"title":"monitor","code":"sequenceDiagram\nA->>B: ping"}')
-          [ "$code" = "401" ] || { echo "::error::/api/ai/diagrams did not 401 a bad token (got $code) - route down or auth broken"; exit 1; }
+          [ "$code" = "401" ] || { echo "::error::/api/ai/sequences did not 401 a bad token (got $code) - route down or auth broken"; exit 1; }

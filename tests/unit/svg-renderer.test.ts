@@ -3,7 +3,7 @@ import {
   esc,
   guessIconKey,
   renderIcon,
-  detectDiagramType,
+  detectSequenceType,
   stripFrontmatter,
   parse,
   buildSvg,
@@ -209,106 +209,106 @@ describe("renderIcon", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 4. detectDiagramType()
+// 4. detectSequenceType()
 // ---------------------------------------------------------------------------
-describe("detectDiagramType", () => {
+describe("detectSequenceType", () => {
   it("sequence: sequenceDiagram", () => {
-    expect(detectDiagramType("sequenceDiagram\nA->>B: hi")).toBe("sequence");
+    expect(detectSequenceType("sequenceDiagram\nA->>B: hi")).toBe("sequence");
   });
   it("flowchart: graph TD", () => {
-    expect(detectDiagramType("graph TD\nA-->B")).toBe("flowchart");
+    expect(detectSequenceType("graph TD\nA-->B")).toBe("flowchart");
   });
   it("flowchart: flowchart LR", () => {
-    expect(detectDiagramType("flowchart LR\nA-->B")).toBe("flowchart");
+    expect(detectSequenceType("flowchart LR\nA-->B")).toBe("flowchart");
   });
   it("class: classDiagram", () => {
-    expect(detectDiagramType("classDiagram\nclass Foo")).toBe("class");
+    expect(detectSequenceType("classDiagram\nclass Foo")).toBe("class");
   });
   it("er: erDiagram", () => {
-    expect(detectDiagramType("erDiagram\nFoo ||--|{ Bar : has")).toBe("er");
+    expect(detectSequenceType("erDiagram\nFoo ||--|{ Bar : has")).toBe("er");
   });
   it("state: stateDiagram", () => {
-    expect(detectDiagramType("stateDiagram\n[*]-->A")).toBe("state");
+    expect(detectSequenceType("stateDiagram\n[*]-->A")).toBe("state");
   });
   it("state: stateDiagram-v2", () => {
-    expect(detectDiagramType("stateDiagram-v2\n[*]-->A")).toBe("state");
+    expect(detectSequenceType("stateDiagram-v2\n[*]-->A")).toBe("state");
   });
   it("gantt: gantt", () => {
-    expect(detectDiagramType("gantt\ntitle Project")).toBe("gantt");
+    expect(detectSequenceType("gantt\ntitle Project")).toBe("gantt");
   });
   it("pie: pie", () => {
-    expect(detectDiagramType('pie\n"A": 30')).toBe("pie");
+    expect(detectSequenceType('pie\n"A": 30')).toBe("pie");
   });
   it("journey: journey", () => {
-    expect(detectDiagramType("journey\ntitle My Journey")).toBe("journey");
+    expect(detectSequenceType("journey\ntitle My Journey")).toBe("journey");
   });
   it("git: gitGraph", () => {
-    expect(detectDiagramType("gitGraph\ncommit")).toBe("git");
+    expect(detectSequenceType("gitGraph\ncommit")).toBe("git");
   });
   it("mindmap: mindmap", () => {
-    expect(detectDiagramType("mindmap\nroot((Root))")).toBe("mindmap");
+    expect(detectSequenceType("mindmap\nroot((Root))")).toBe("mindmap");
   });
   it("timeline: timeline", () => {
-    expect(detectDiagramType("timeline\ntitle History")).toBe("timeline");
+    expect(detectSequenceType("timeline\ntitle History")).toBe("timeline");
   });
   it("quadrant: quadrantChart", () => {
-    expect(detectDiagramType("quadrantChart\nA")).toBe("quadrant");
+    expect(detectSequenceType("quadrantChart\nA")).toBe("quadrant");
   });
   it("xychart: xychart-beta", () => {
-    expect(detectDiagramType("xychart-beta\nbar [1,2,3]")).toBe("xychart");
+    expect(detectSequenceType("xychart-beta\nbar [1,2,3]")).toBe("xychart");
   });
   it("requirement: requirementDiagram", () => {
-    expect(detectDiagramType("requirementDiagram\nrequirement R1")).toBe("requirement");
+    expect(detectSequenceType("requirementDiagram\nrequirement R1")).toBe("requirement");
   });
   it("c4: C4Context", () => {
-    expect(detectDiagramType("C4Context\nPerson(u, User)")).toBe("c4");
+    expect(detectSequenceType("C4Context\nPerson(u, User)")).toBe("c4");
   });
   it("block: block-beta", () => {
-    expect(detectDiagramType("block-beta\nA")).toBe("block");
+    expect(detectSequenceType("block-beta\nA")).toBe("block");
   });
   it("sankey: sankey-beta", () => {
-    expect(detectDiagramType("sankey-beta\nA,B,10")).toBe("sankey");
+    expect(detectSequenceType("sankey-beta\nA,B,10")).toBe("sankey");
   });
   it("packet: packet-beta", () => {
-    expect(detectDiagramType("packet-beta\n0-7: Field")).toBe("packet");
+    expect(detectSequenceType("packet-beta\n0-7: Field")).toBe("packet");
   });
   it("kanban: kanban", () => {
-    expect(detectDiagramType("kanban\ntodo[Todo]")).toBe("kanban");
+    expect(detectSequenceType("kanban\ntodo[Todo]")).toBe("kanban");
   });
   it("architecture: architecture-beta", () => {
-    expect(detectDiagramType("architecture-beta\nservice A")).toBe("architecture");
+    expect(detectSequenceType("architecture-beta\nservice A")).toBe("architecture");
   });
   it("radar: radar-beta", () => {
-    expect(detectDiagramType("radar-beta\naxis A")).toBe("radar");
+    expect(detectSequenceType("radar-beta\naxis A")).toBe("radar");
   });
   it("treemap: treemap", () => {
-    expect(detectDiagramType("treemap\nroot")).toBe("treemap");
+    expect(detectSequenceType("treemap\nroot")).toBe("treemap");
   });
   it("unknown keyword returns diagram", () => {
-    expect(detectDiagramType("unknownKeyword\nfoo")).toBe("diagram");
+    expect(detectSequenceType("unknownKeyword\nfoo")).toBe("diagram");
   });
   it("empty string returns diagram", () => {
-    expect(detectDiagramType("")).toBe("diagram");
+    expect(detectSequenceType("")).toBe("diagram");
   });
   it("skips %% comment lines", () => {
-    expect(detectDiagramType("%% This is a comment\nsequenceDiagram")).toBe("sequence");
+    expect(detectSequenceType("%% This is a comment\nsequenceDiagram")).toBe("sequence");
   });
   it("skips title: lines", () => {
-    expect(detectDiagramType("title: My Title\nflowchart LR")).toBe("flowchart");
+    expect(detectSequenceType("title: My Title\nflowchart LR")).toBe("flowchart");
   });
   it("skips accTitle: lines", () => {
-    expect(detectDiagramType("accTitle: Accessibility Title\nclassDiagram")).toBe("class");
+    expect(detectSequenceType("accTitle: Accessibility Title\nclassDiagram")).toBe("class");
   });
   it("skips accDescr: lines", () => {
-    expect(detectDiagramType("accDescr: Description\nerDiagram")).toBe("er");
+    expect(detectSequenceType("accDescr: Description\nerDiagram")).toBe("er");
   });
   it("strips frontmatter before detecting", () => {
     const code = "---\ntheme: dark\n---\nsequenceDiagram\nA->>B: hi";
-    expect(detectDiagramType(code)).toBe("sequence");
+    expect(detectSequenceType(code)).toBe("sequence");
   });
   it("strips code fences before detecting", () => {
     const code = "```mermaid\nflowchart LR\nA-->B\n```";
-    expect(detectDiagramType(code)).toBe("flowchart");
+    expect(detectSequenceType(code)).toBe("flowchart");
   });
 });
 

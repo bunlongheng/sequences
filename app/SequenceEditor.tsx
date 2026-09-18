@@ -8,7 +8,7 @@ import Prism from "prismjs";
 import LZString from "lz-string";
 const MermaidRenderer = dynamic(() => import("./MermaidRenderer"), { ssr: false });
 import {
-  parse, buildSvg, esc, detectDiagramType, stripFrontmatter,
+  parse, buildSvg, esc, detectSequenceType, stripFrontmatter,
   guessIconKey, renderIcon,
   PAL, PAL_MONOKAI, THEMES, ICON_NODES, LIFELINE_DASH, DIAGRAM_TYPES,
   DEFAULT_OPTS, DEFAULT_LAYOUT, DEFAULT_DIAGRAM_TITLE,
@@ -48,7 +48,7 @@ const DEFAULT_CODE = `sequenceDiagram
 // ── Router ────────────────────────────────────────────────────────────────────
 
 // ── Editor ────────────────────────────────────────────────────────────────────
-export default function DiagramEditor() {
+export default function SequenceEditor() {
     // The index is a server-rendered route, so leaving the editor is a plain
     // navigation back to it.
     const goBack = () => { window.location.href = "/"; };
@@ -80,8 +80,8 @@ export default function DiagramEditor() {
     const [titleEdit, setTitleEdit] = useState<{ value: string; rect: DOMRect } | null>(null);
 
 
-    const diagramType = useMemo(() => detectDiagramType(deferredCode), [deferredCode]);
-    const isSequence = diagramType === "sequence";
+    const sequenceType = useMemo(() => detectSequenceType(deferredCode), [deferredCode]);
+    const isSequence = sequenceType === "sequence";
     const diagram = useMemo(() => deferredCode.trim() ? parse(deferredCode) : parse("sequenceDiagram"), [deferredCode]);
 
     const [selectedPid, setSelectedPid] = useState<string | null>(null);
@@ -132,7 +132,7 @@ export default function DiagramEditor() {
         }
         showToast(`Title saved`, { color: "#7c3aed" });
         if (savedDiagramId && isOwner) {
-            fetch(`/api/diagrams/${savedDiagramId}`, {
+            fetch(`/api/sequences/${savedDiagramId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ title: t, code: newCode }),
@@ -168,7 +168,7 @@ export default function DiagramEditor() {
     useEffect(() => { zoomRef.current = zoom; }, [zoom]);
     useEffect(() => { panRef.current = { x: panX, y: panY }; }, [panX, panY]);
     fitActiveRef.current = fitActive;
-    // Re-apply transform after every render — prevents React from overwriting
+    // Re-apply transform after every render - prevents React from overwriting
     // the direct DOM transform set by applyTransform during gestures.
     // useLayoutEffect runs synchronously before paint so there is zero flicker.
     useLayoutEffect(() => {
@@ -211,7 +211,7 @@ export default function DiagramEditor() {
                 // Two-finger trackpad swipe → pan
                 panRef.current = { x: panRef.current.x - e.deltaX, y: panRef.current.y - e.deltaY };
             }
-            // Flush to DOM once per frame via rAF — batches all events between frames
+            // Flush to DOM once per frame via rAF - batches all events between frames
             if (!wheelRafId.current) {
                 wheelRafId.current = requestAnimationFrame(() => {
                     applyTransform(panRef.current, zoomRef.current);
@@ -329,13 +329,13 @@ export default function DiagramEditor() {
         const isImported = params.get("imported") === "1";
         const isViewMode = params.get("view") === "1";
 
-        // Auto-open code editor at 50% width for new diagrams
+        // Auto-open code editor at 50% width for new sequences
         if (isNew && !isMobile) {
             setShowCode(true);
             setCodeWidth(Math.round(window.innerWidth * 0.5));
         }
 
-        // ?data= — inline diagram code (LZ-compressed or plain URI-encoded)
+        // ?data= - inline diagram code (LZ-compressed or plain URI-encoded)
         let decodedData = "";
         if (dataParam) {
             decodedData = LZString.decompressFromEncodedURIComponent(dataParam) || "";
@@ -353,11 +353,11 @@ export default function DiagramEditor() {
             // is_public loaded from DB response below
         }
 
-        // Fetch diagram — single path, no duplicate fetches
+        // Fetch diagram - single path, no duplicate fetches
         if (urlId) {
             setDiagramLoading(true);
-            fetch(`/api/diagrams/${urlId}`).then(async r => {
-                if (r.status === 403) return; // private diagram — auth check below handles it
+            fetch(`/api/sequences/${urlId}`).then(async r => {
+                if (r.status === 403) return; // private diagram - auth check below handles it
                 if (!r.ok) { setDiagramLoading(false); return; }
                 const d = await r.json();
                 if (d?.code) {
@@ -376,7 +376,7 @@ export default function DiagramEditor() {
             }).catch(() => setDiagramLoading(false));
         }
 
-        // Owner check — authorized (owner session or local/LAN bypass) = full
+        // Owner check - authorized (owner session or local/LAN bypass) = full
         // editor; otherwise presenter mode. Reflects the server gate.
         fetch("/api/auth/me").then(r => r.json()).then(({ authorized }) => {
             if (authorized) {
@@ -387,7 +387,7 @@ export default function DiagramEditor() {
                     setTimeout(() => showToast(t, { color: "#7c3aed" }), 400);
                 }
             } else {
-                // Not the owner — presenter mode
+                // Not the owner - presenter mode
                 setViewMode(true);
             }
         }).catch(() => setViewMode(true));
@@ -405,7 +405,7 @@ export default function DiagramEditor() {
     }, []);
 
     // ── Persist ───────────────────────────────────────────────────────────
-    // code is NOT persisted to localStorage — loaded from URL or paste only
+    // code is NOT persisted to localStorage - loaded from URL or paste only
     useEffect(() => {
         if (!mounted) return;
         const t = setTimeout(() => localStorage.setItem("nsd-opts", JSON.stringify(opts)), 300);
@@ -417,14 +417,14 @@ export default function DiagramEditor() {
         return () => clearTimeout(t);
     }, [layout, mounted]);
 
-    // ── Auto layout — compute from diagram content ────────────────────────
+    // ── Auto layout - compute from diagram content ────────────────────────
     const computedLayout = useMemo((): Layout => {
         if (!opts.autoLayout) return layout;
 
         const rows = diagram.messages.length;
         const ICON_W = opts.iconMode === "icons" ? 26 : 0;
 
-        // Font size: shrink slightly for large diagrams
+        // Font size: shrink slightly for large sequences
         const FS = rows > 30 ? 11 : rows > 15 ? 12 : 13;
 
         // Box width: fit the longest participant label
@@ -433,7 +433,7 @@ export default function DiagramEditor() {
             Math.ceil(p.label.length * (FS * 0.65) + ICON_W + HPAD)
         ));
 
-        // Step height: compress for dense diagrams
+        // Step height: compress for dense sequences
         const stepHeight = rows > 40 ? 32 : rows > 20 ? 36 : rows > 10 ? 40 : 44;
 
         // Spacing: box width + enough room for the longest adjacent message pill + step circle
@@ -441,7 +441,7 @@ export default function DiagramEditor() {
         const pillEstimate = maxMsgLen * (FS * 0.65) + 48; // 0.65 char width + circle room
         const spacing = Math.round(Math.max(boxWidth + 80, boxWidth + pillEstimate));
 
-        // vPad: zero by default — stepHeight already contains the row, so 0 is tight without overlap
+        // vPad: zero by default - stepHeight already contains the row, so 0 is tight without overlap
         const vPad = 0;
 
         // margin: proportional to spacing
@@ -474,7 +474,7 @@ export default function DiagramEditor() {
         const { clientWidth: cw, clientHeight: ch } = canvasRef.current;
         const fitW = (cw - 48) / svgDims.w;
         const fitH = (ch - 48) / svgDims.h;
-        // Wide diagrams (gitGraph, gantt, timeline): fit to height, pan horizontally
+        // Wide sequences (gitGraph, gantt, timeline): fit to height, pan horizontally
         const wide = svgDims.w > svgDims.h * 2.5;
         const newZoom = parseFloat((wide ? Math.min(fitH, 1.5) : Math.min(fitW, fitH)).toFixed(3));
         zoomRef.current = newZoom;
@@ -490,7 +490,7 @@ export default function DiagramEditor() {
         }
     }, [svgDims, hasFit, fitZoom]);
 
-    // Highlight selected participant box — adds a blue outline rect ON TOP of the existing box
+    // Highlight selected participant box - adds a blue outline rect ON TOP of the existing box
     // (does not overwrite the original black border)
     useEffect(() => {
         if (!svgWrapRef.current) return;
@@ -594,7 +594,7 @@ export default function DiagramEditor() {
     const saveDiagramRef = useRef<(() => void) | null>(null);
     const saveSettings = useCallback((newOpts: Opts, newLayout: Layout) => {
         if (!savedDiagramId || !isOwner) return;
-        fetch(`/api/diagrams/${savedDiagramId}`, {
+        fetch(`/api/sequences/${savedDiagramId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ settings: { opts: newOpts, layout: newLayout } }),
@@ -615,7 +615,7 @@ export default function DiagramEditor() {
 
     // ── Exports ───────────────────────────────────────────────────────────
     const exportFilename = (ext: string) => {
-        const title = (diagram.title ?? "diagram").replace(/[^a-z0-9]/gi, "-").toLowerCase();
+        const title = (diagram.title ?? "sequence").replace(/[^a-z0-9]/gi, "-").toLowerCase();
         const now = new Date();
         const date = now.toISOString().slice(0, 10);
         const time = now.toTimeString().slice(0, 5).replace(":", "-");
@@ -678,7 +678,7 @@ No explanation, no markdown, just the JSON object.`,
             });
             if (!res.ok) throw new Error("AI request failed");
             const data = await res.json();
-            // The AI generate endpoint returns {code} — but we sent a special prompt
+            // The AI generate endpoint returns {code} - but we sent a special prompt
             // Parse the response to find the JSON mapping
             const text = data.code || data.title || JSON.stringify(data);
             const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -716,13 +716,13 @@ No explanation, no markdown, just the JSON object.`,
         const c = codeToSave ?? code;
         if (!c.trim()) return; // don't save empty/placeholder
         const title = extractTitle(c);
-        const dtype = detectDiagramType(c);
+        const dtype = detectSequenceType(c);
         showToast("Saving…", { color: "#6366f1" });
         try {
-            const res = await fetch("/api/diagrams", {
+            const res = await fetch("/api/sequences", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, code: c, diagramType: dtype }),
+                body: JSON.stringify({ title, code: c, sequenceType: dtype }),
             });
             const result = await res.json();
             if (!res.ok) {
@@ -750,7 +750,7 @@ No explanation, no markdown, just the JSON object.`,
         if (!isOwner || !savedDiagramId || !code.trim()) return;
         if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
         autoSaveTimer.current = setTimeout(() => {
-            fetch(`/api/diagrams/${savedDiagramId}`, {
+            fetch(`/api/sequences/${savedDiagramId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ code }),
@@ -759,7 +759,7 @@ No explanation, no markdown, just the JSON object.`,
         return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
     }, [code, savedDiagramId, isOwner]);
 
-    const PROD_URL = "https://diagrams-bheng.vercel.app";
+    const PROD_URL = "https://sequences-bheng.vercel.app";
     const buildShareUrl = useCallback(() => {
         if (savedDiagramId) return `${PROD_URL}/d/${savedDiagramId}`;
         return null; // not saved yet
@@ -829,10 +829,10 @@ No explanation, no markdown, just the JSON object.`,
         const parsed = parse(pasted);
         if (parsed.participants.length >= 2) setTimeout(fireConfetti, 150);
         setTimeout(fitZoom, 120);
-        // Don't save here — onGlobalPaste (capture phase) already handles diagram saves
+        // Don't save here - onGlobalPaste (capture phase) already handles diagram saves
     }, [fireConfetti, fitZoom]);
 
-    // ── Global paste listener — always intercepts sequence diagrams, creates new record ──
+    // ── Global paste listener - always intercepts sequence sequences, creates new record ──
     useEffect(() => {
         const onGlobalPaste = (e: ClipboardEvent) => {
             const pasted = e.clipboardData?.getData("text") ?? "";
@@ -841,10 +841,10 @@ No explanation, no markdown, just the JSON object.`,
             const looksLikeDiagram = /^(sequenceDiagram|flowchart|graph\s|classDiagram|erDiagram|gantt|pie|mindmap|gitGraph|journey)/im.test(stripFrontmatter(pasted));
             if (!looksLikeSequence) {
                 const tag = (e.target as HTMLElement)?.tagName;
-                if (tag !== "TEXTAREA" && tag !== "INPUT") showToast(looksLikeDiagram ? "Only sequence diagrams supported" : "Not a diagram", { color: "#ef4444" });
+                if (tag !== "TEXTAREA" && tag !== "INPUT") showToast(looksLikeDiagram ? "Only sequence sequences supported" : "Not a diagram", { color: "#ef4444" });
                 return;
             }
-            // Always intercept — prevent textarea from inserting raw text
+            // Always intercept - prevent textarea from inserting raw text
             e.preventDefault();
             setCode(pasted);
             setSavedDiagramId(null);
@@ -890,13 +890,13 @@ No explanation, no markdown, just the JSON object.`,
         const handler = (e: KeyboardEvent) => {
             if (e.key !== "Escape") return;
             if (presenterEscRef.current) {
-                // Second Esc — exit
+                // Second Esc - exit
                 presenterEscRef.current = false;
                 setPresenterEscPending(false);
                 if (presenterEscTimerRef.current) clearTimeout(presenterEscTimerRef.current);
                 exitPresenter();
             } else {
-                // First Esc — warn
+                // First Esc - warn
                 presenterEscRef.current = true;
                 setPresenterEscPending(true);
                 presenterEscTimerRef.current = setTimeout(() => {
@@ -936,7 +936,7 @@ No explanation, no markdown, just the JSON object.`,
                 style={{ position: "relative", width: "100svw", height: "100svh", overflow: "hidden", background: "#e8eaf0", fontFamily: "var(--font-roboto), sans-serif", cursor: isMobile ? "default" : "crosshair", touchAction: "none", userSelect: "none" }}
                 onMouseMove={e => {
                     const rect = canvasRef.current!.getBoundingClientRect();
-                    // Spotlight: update gradient center directly — no React re-render
+                    // Spotlight: update gradient center directly - no React re-render
                     if (spotlightActiveRef.current && spotlightRef.current) {
                         const x = e.clientX - rect.left;
                         const y = e.clientY - rect.top;
@@ -1026,7 +1026,7 @@ No explanation, no markdown, just the JSON object.`,
                     zIndex: 50, boxShadow: "0 2px 16px rgba(0,0,0,0.3)",
                 }} />
 
-                {/* Spotlight overlay — updated directly via DOM, no React re-renders */}
+                {/* Spotlight overlay - updated directly via DOM, no React re-renders */}
                 <div ref={spotlightRef} style={{
                     position: "absolute", inset: 0, zIndex: 16, pointerEvents: "none",
                     opacity: 0, transition: "opacity 0.15s ease",
@@ -1272,10 +1272,10 @@ No explanation, no markdown, just the JSON object.`,
                 display: "flex", alignItems: "center", padding: "0 16px", gap: 10, flexShrink: 0,
             }}>
 
-                {/* Back — ideas-style floating pill */}
+                {/* Back - ideas-style floating pill */}
                 <button
                     onClick={goBack}
-                    aria-label="Back to diagrams"
+                    aria-label="Back to sequences"
                     style={{
                         width: 36, height: 36, borderRadius: 10, flexShrink: 0,
                         border: `1px solid ${ut.headerBorder}`,
@@ -1291,7 +1291,7 @@ No explanation, no markdown, just the JSON object.`,
 
                 <div style={{ flex: 1 }} />
 
-                {/* Action toolbar — ideas-style floating pill */}
+                {/* Action toolbar - ideas-style floating pill */}
                 <div style={{
                     display: "flex", alignItems: "center", gap: 2,
                     background: opts.theme === "light" ? "#ffffff" : ut.headerBg,
@@ -1326,9 +1326,9 @@ No explanation, no markdown, just the JSON object.`,
                                     const url = `${PROD_URL}/d/${savedDiagramId}`;
                                     navigator.clipboard.writeText(url).catch(() => {});
                                     window.open(url, "_blank");
-                                    showToast("Link copied — opening preview", { color: "#7c3aed" });
+                                    showToast("Link copied - opening preview", { color: "#7c3aed" });
                                 } else {
-                                    await fetch(`/api/diagrams/${savedDiagramId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_public: true }) });
+                                    await fetch(`/api/sequences/${savedDiagramId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_public: true }) });
                                     setIsSharedDiagram(true);
                                     const url = `${PROD_URL}/d/${savedDiagramId}`;
                                     navigator.clipboard.writeText(url).catch(() => {});
@@ -1343,7 +1343,7 @@ No explanation, no markdown, just the JSON object.`,
                             }}
                                 onMouseEnter={e => { if (!isSharedDiagram) e.currentTarget.style.background = opts.theme === "light" ? "#f1f5f9" : ut.activeTab; }}
                                 onMouseLeave={e => { if (!isSharedDiagram) e.currentTarget.style.background = "transparent"; }}
-                                title={isSharedDiagram ? "Click to preview + copy link" : "Share — make public"}
+                                title={isSharedDiagram ? "Click to preview + copy link" : "Share - make public"}
                                 aria-label={isSharedDiagram ? "Public" : "Share"}
                             >
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
@@ -1351,7 +1351,7 @@ No explanation, no markdown, just the JSON object.`,
                             </button>
                             {isSharedDiagram && (
                                 <button onClick={async () => {
-                                    await fetch(`/api/diagrams/${savedDiagramId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_public: false }) });
+                                    await fetch(`/api/sequences/${savedDiagramId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_public: false }) });
                                     setIsSharedDiagram(false);
                                     showToast("No longer public", { color: "#64748b" });
                                 }} style={{
@@ -1514,14 +1514,14 @@ No explanation, no markdown, just the JSON object.`,
                             <div className="flex items-center justify-center h-full">
                                 {mounted && (
                                     <span className="text-sm text-center px-6" style={{ color: "#94a3b8" }}>
-                                        No diagram — open the code editor and enter sequence syntax.
+                                        No diagram - open the code editor and enter sequence syntax.
                                     </span>
                                 )}
                             </div>
                         )}
                     </div>
 
-                    {/* Zoom HUD — shown during zoom, fades out via direct DOM */}
+                    {/* Zoom HUD - shown during zoom, fades out via direct DOM */}
                     <div ref={zoomHudRef} style={{
                         position: "absolute", bottom: 80, left: "50%", transform: "translateX(-50%)",
                         background: "rgba(10,10,15,0.72)", backdropFilter: "blur(12px)",

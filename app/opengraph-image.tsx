@@ -27,7 +27,7 @@ export default function OgImage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                     <span style={{ fontSize: 96, fontWeight: 900, color: "white", lineHeight: 1 }}>Diagrams</span>
                     <div style={{ fontSize: 32, color: "rgba(255,255,255,0.65)", fontWeight: 400, lineHeight: 1.4, maxWidth: 580 }}>
-                        Beautiful sequence diagrams — paste diagram syntax, get polished visuals instantly.
+                        Beautiful sequence diagrams - paste Mermaid syntax, get polished visuals instantly.
                     </div>
                     <div style={{ display: "flex", gap: 16, marginTop: 12 }}>
                         {["Sequence", "Flowchart", "ERD", "Gantt", "Export PNG"].map(tag => (

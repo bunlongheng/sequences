@@ -53,7 +53,7 @@ describe("isLocal returns false for public / non-local hosts", () => {
   });
 
   it("vercel production domain", () => {
-    expect(isLocal(req("diagrams-bheng.vercel.app"))).toBe(false);
+    expect(isLocal(req("sequences-bheng.vercel.app"))).toBe(false);
   });
 
   it("subdomain of localhost is NOT local (evil.localhost) — no wildcard bypass", () => {

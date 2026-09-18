@@ -1,5 +1,5 @@
 /**
- * Component tests for CuteToast, SignInButton (LoginForm), MermaidRenderer, DiagramsShell
+ * Component tests for CuteToast, SignInButton (LoginForm), MermaidRenderer, SequencesShell
  */
 import React from "react";
 import { render, screen, waitFor, act, fireEvent } from "@testing-library/react";
@@ -25,8 +25,8 @@ vi.mock("mermaid", () => ({
   },
 }));
 
-// Mock DiagramsClient to avoid rendering the heavy component
-vi.mock("@/app/DiagramsClient", () => ({
+// Mock SequencesClient to avoid rendering the heavy component
+vi.mock("@/app/SequencesClient", () => ({
   default: () => <div>CLIENT_STUB</div>,
 }));
 
@@ -36,7 +36,7 @@ vi.mock("@/app/DiagramsClient", () => ({
 import { CuteToast, showToast } from "@/app/CuteToast";
 import LoginForm from "@/app/SignInButton";
 import MermaidRenderer from "@/app/MermaidRenderer";
-import DiagramsShell from "@/app/DiagramsShell";
+import SequencesShell from "@/app/SequencesShell";
 import { signIn, getSession } from "next-auth/react";
 import mermaid from "mermaid";
 
@@ -210,9 +210,9 @@ describe("MermaidRenderer", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 4) DiagramsShell tests
+// 4) SequencesShell tests
 // ---------------------------------------------------------------------------
-describe("DiagramsShell", () => {
+describe("SequencesShell", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
@@ -222,33 +222,33 @@ describe("DiagramsShell", () => {
     mockGetSession.mockResolvedValue(null);
     // Block the fetch indefinitely
     server.use(
-      http.get("*/api/diagrams", () => new Promise(() => {}))
+      http.get("*/api/sequences", () => new Promise(() => {}))
     );
-    render(<DiagramsShell />);
-    expect(screen.getByText("Loading diagrams…")).toBeInTheDocument();
+    render(<SequencesShell />);
+    expect(screen.getByText("Loading sequences…")).toBeInTheDocument();
   });
 
-  it("shows login screen when /api/diagrams returns 401", async () => {
+  it("shows login screen when /api/sequences returns 401", async () => {
     server.use(
-      http.get("*/api/diagrams", () =>
+      http.get("*/api/sequences", () =>
         new HttpResponse(JSON.stringify({ error: "Unauthorized" }), { status: 401 })
       )
     );
-    render(<DiagramsShell />);
+    render(<SequencesShell />);
     await waitFor(() => {
       expect(
-        screen.getByText(/sign in to view your diagrams/i)
+        screen.getByText(/beautiful sequence diagrams/i)
       ).toBeInTheDocument();
     });
   });
 
   it("shows 'Continue with Google' button when unauthorized", async () => {
     server.use(
-      http.get("*/api/diagrams", () =>
+      http.get("*/api/sequences", () =>
         new HttpResponse(JSON.stringify({ error: "Unauthorized" }), { status: 401 })
       )
     );
-    render(<DiagramsShell />);
+    render(<SequencesShell />);
     await waitFor(() => {
       expect(
         screen.getByRole("button", { name: /continue with google/i })
@@ -256,25 +256,25 @@ describe("DiagramsShell", () => {
     });
   });
 
-  it("renders DiagramsClient when authorized with a real session", async () => {
+  it("renders SequencesClient when authorized with a real session", async () => {
     server.use(
-      http.get("*/api/diagrams", () => HttpResponse.json([]))
+      http.get("*/api/sequences", () => HttpResponse.json([]))
     );
     mockGetSession.mockResolvedValue({
       user: { email: "a@b.com", name: "A", image: null },
     } as any);
-    render(<DiagramsShell />);
+    render(<SequencesShell />);
     await waitFor(() => {
       expect(screen.getByText("CLIENT_STUB")).toBeInTheDocument();
     });
   });
 
-  it("renders DiagramsClient when authorized but getSession returns null (local bypass)", async () => {
+  it("renders SequencesClient when authorized but getSession returns null (local bypass)", async () => {
     server.use(
-      http.get("*/api/diagrams", () => HttpResponse.json([]))
+      http.get("*/api/sequences", () => HttpResponse.json([]))
     );
     mockGetSession.mockResolvedValue(null);
-    render(<DiagramsShell />);
+    render(<SequencesShell />);
     await waitFor(() => {
       expect(screen.getByText("CLIENT_STUB")).toBeInTheDocument();
     });
@@ -282,28 +282,28 @@ describe("DiagramsShell", () => {
 
   it("does not show login screen when authorized (no false positive)", async () => {
     server.use(
-      http.get("*/api/diagrams", () => HttpResponse.json([]))
+      http.get("*/api/sequences", () => HttpResponse.json([]))
     );
     mockGetSession.mockResolvedValue({
       user: { email: "a@b.com", name: "A", image: null },
     } as any);
-    render(<DiagramsShell />);
+    render(<SequencesShell />);
     await waitFor(() => {
       expect(screen.getByText("CLIENT_STUB")).toBeInTheDocument();
     });
     expect(
-      screen.queryByText(/sign in to view your diagrams/i)
+      screen.queryByText(/beautiful sequence diagrams/i)
     ).not.toBeInTheDocument();
   });
 
   it("shows login screen when fetch throws (network error)", async () => {
     server.use(
-      http.get("*/api/diagrams", () => HttpResponse.error())
+      http.get("*/api/sequences", () => HttpResponse.error())
     );
-    render(<DiagramsShell />);
+    render(<SequencesShell />);
     await waitFor(() => {
       expect(
-        screen.getByText(/sign in to view your diagrams/i)
+        screen.getByText(/beautiful sequence diagrams/i)
       ).toBeInTheDocument();
     });
   });

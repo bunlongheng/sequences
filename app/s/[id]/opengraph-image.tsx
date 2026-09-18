@@ -35,7 +35,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   let svg: string | null = null;
   let title = "Diagram";
   if (UUID.test(id)) {
-    const { rows } = await db.query("SELECT code, settings, title, created_at FROM diagrams WHERE id = $1", [id]);
+    const { rows } = await db.query("SELECT code, settings, title, created_at FROM sequences WHERE id = $1", [id]);
     if (rows.length && rows[0].code?.trim()) {
       const { code, settings, title: dbTitle, created_at } = rows[0];
       const opts: Opts = { ...DEFAULT_OPTS, ...(settings?.opts ?? {}) };

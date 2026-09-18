@@ -1,13 +1,13 @@
 import db from "@/lib/db";
 import { auth } from "@/auth";
 import { resolveOwnerIdServer } from "@/lib/auth-owner";
-import DiagramsShell from "./DiagramsShell";
-import DiagramEditor from "./DiagramEditor";
+import SequencesShell from "./SequencesShell";
+import SequenceEditor from "./SequenceEditor";
 import LoginLanding from "./LoginLanding";
-import type { ShellUser } from "./DiagramsClient";
+import type { ShellUser } from "./SequencesClient";
 
 // The "/" route. ?id= / ?new / ?data open the client editor; everything else is
-// the index, which is server-rendered: auth + the owner's diagrams are resolved
+// the index, which is server-rendered: auth + the owner's sequences are resolved
 // on the server and handed to the shell as initial data (no client waterfall,
 // content in the initial HTML).
 export default async function Home({
@@ -16,7 +16,7 @@ export default async function Home({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  if ("id" in sp || "new" in sp || "data" in sp) return <DiagramEditor />;
+  if ("id" in sp || "new" in sp || "data" in sp) return <SequenceEditor />;
 
   const uid = await resolveOwnerIdServer();
 
@@ -27,12 +27,12 @@ export default async function Home({
   const [session, result] = await Promise.all([
     auth(),
     db.query(
-      "SELECT id, title, slug, diagram_type, created_at, updated_at, code, tags, settings->>'youtubeId' AS youtube_id FROM diagrams WHERE user_id = $1 ORDER BY updated_at DESC",
+      "SELECT id, title, slug, sequence_type, created_at, updated_at, code, tags, settings->>'youtubeId' AS youtube_id FROM sequences WHERE user_id = $1 ORDER BY updated_at DESC",
       [uid]
     ),
   ]);
   // Match NextResponse.json: Date columns serialize to ISO strings for the client.
-  const diagrams: Diagram[] = JSON.parse(JSON.stringify(result.rows));
+  const sequences: Sequence[] = JSON.parse(JSON.stringify(result.rows));
   // The local dev bypass has no session, so fall back to the owner row the
   // NextAuth adapter already stores (name + Google profile photo).
   let profile = {
@@ -58,10 +58,10 @@ export default async function Home({
     },
   };
 
-  return <DiagramsShell initial={{ user, diagrams }} />;
+  return <SequencesShell initial={{ user, sequences }} />;
 }
 
-type Diagram = {
+type Sequence = {
   id: string; title: string; slug: string;
-  diagram_type: string; created_at: string; updated_at: string; code: string; tags: string[];
+  sequence_type: string; created_at: string; updated_at: string; code: string; tags: string[];
 };

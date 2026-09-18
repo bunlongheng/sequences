@@ -12,6 +12,6 @@ describe("Smoke tests", () => {
   it("path alias @ resolves correctly", async () => {
     // Verify the resolve alias works by importing package.json
     const pkg = await import("@/package.json");
-    expect(pkg.name).toBe("diagrams");
+    expect(pkg.name).toBe("sequences");
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { embedTitleInCode } from "@/lib/diagram-code";
+import { embedTitleInCode } from "@/lib/sequence-code";
 
 // ---------------------------------------------------------------------------
 // embedTitleInCode
