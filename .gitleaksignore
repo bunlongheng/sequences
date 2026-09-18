@@ -1,0 +1,10 @@
+# gitleaks baseline - known findings verified safe, do not re-alert
+# Verify method: POST the flagged token to prod /api/ai/diagrams and expect 401.
+
+# Real AI_API_SECRET hardcoded for 3 minutes on 2026-03-28, replaced in the next
+# commit. Secret was rotated; leaked value confirmed dead (prod 401) on 2026-08-21.
+c7c507d4f88b32afa230043ef3b8af36c04d48aa:app/DiagramsClient.tsx:curl-auth-header:1194
+
+# CI monitor uses a deliberately fake token ("monitor-not-a-real-token") to prove
+# the auth gate 401s without creating rows. Not a secret.
+f2e438f0a369993cc05747fcb67b4badd2ad794a:.github/workflows/prod-monitor.yml:curl-auth-header:52

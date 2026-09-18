@@ -15,7 +15,7 @@ version: 2
 secret:
   ignored-matches:
     - name: "CI throwaway Postgres password (default container pw)"
-      match: "postgres://postgres:postgres@localhost:5432/diagrams"
+      match: "postgres://postgres:postgres@localhost:5432/sequences"
     - name: "CI test DATABASE_URL (ephemeral service container)"
       match: "postgresql://test:test@localhost:5432/test"
     - name: "CI e2e dummy AUTH_SECRET (not a real credential)"

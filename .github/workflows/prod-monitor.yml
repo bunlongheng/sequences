@@ -43,12 +43,12 @@ jobs:
           [ "$code" = "200" ] || { echo "::error::/api/auth/providers HTTP $code"; exit 1; }
           printf '%s' "$body" | grep -q '"google"' || { echo "::error::google provider missing - auth misconfigured"; exit 1; }
 
-      - name: Diagram-creation API is up and auth-gated (side-effect-free)
+      - name: Sequence-creation API is up and auth-gated (side-effect-free)
         run: |
           set -euo pipefail
           # POST with a deliberately BAD token: proves the route is alive AND the
           # Bearer gate rejects unauthorized callers. Uses a bad token on purpose
-          # so it NEVER creates a diagram (no row spam - see the polling rule).
+          # so it NEVER creates a sequence (no row spam - see the polling rule).
           code=$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' \
             -X POST "$BASE_URL/api/ai/sequences" \
             -H "Authorization: Bearer monitor-not-a-real-token" \
