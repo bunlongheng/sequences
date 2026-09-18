@@ -98,7 +98,7 @@ test.describe("Editor -- /?new (unauthenticated)", () => {
 
   test("index page shows login screen (not editor)", async ({ page }) => {
     await page.goto("/", { timeout: 20_000 });
-    await expect(page.locator("h1")).toContainText("Diagrams", { timeout: 10_000 });
+    await expect(page.locator("h1")).toContainText("Sequences", { timeout: 10_000 });
     await expect(
       page.getByRole("button", { name: /continue with google/i })
     ).toBeVisible({ timeout: 8_000 });

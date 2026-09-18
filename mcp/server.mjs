@@ -51,7 +51,7 @@ server.registerTool(
   {
     title: 'Create sequence',
     description:
-      'Create a Mermaid SEQUENCE diagram in the Diagrams app. `code` MUST be valid Mermaid sequenceDiagram syntax (must contain "sequenceDiagram") - flowcharts, class, ER, etc. are rejected. Returns { id, url, svg_url, canvas } plus `svg` (the inline script-free SVG markup, docs-safe) or `svg_error` if the inline render failed.',
+      'Create a Mermaid SEQUENCE diagram in the Sequences app. `code` MUST be valid Mermaid sequenceDiagram syntax (must contain "sequenceDiagram") - flowcharts, class, ER, etc. are rejected. Returns { id, url, svg_url, canvas } plus `svg` (the inline script-free SVG markup, docs-safe) or `svg_error` if the inline render failed.',
     inputSchema: {
       title: z.string().describe('Descriptive title, e.g. "User Login Flow" (3-6 words)'),
       code: z.string().describe('Valid Mermaid sequenceDiagram code, e.g. "sequenceDiagram\\n  participant U as User\\n  U->>S: Login"'),
