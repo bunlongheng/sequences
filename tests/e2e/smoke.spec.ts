@@ -1,21 +1,21 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Diagrams -- Smoke Tests", () => {
+test.describe("Sequences -- Smoke Tests", () => {
   test("homepage returns 200", async ({ page }) => {
     const response = await page.goto("/");
     expect(response?.status()).toBe(200);
   });
 
-  test("page title matches /Diagram/i", async ({ page }) => {
+  test("page title matches /Sequence/i", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/Diagram/i);
+    await expect(page).toHaveTitle(/Sequence/i);
   });
 
-  test("h1 heading 'Diagrams' is visible", async ({ page }) => {
+  test("h1 heading 'Sequences' is visible", async ({ page }) => {
     await page.goto("/");
     const heading = page.locator("h1");
     await expect(heading).toBeVisible({ timeout: 10_000 });
-    await expect(heading).toHaveText("Diagrams");
+    await expect(heading).toHaveText("Sequences");
   });
 
   test("'Continue with Google' button is visible", async ({ page }) => {

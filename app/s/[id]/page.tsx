@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const description = row ? "View this diagram - copy the link, open it in the editor, or export it." : "This diagram does not exist.";
   return {
     metadataBase: new URL(base),
-    title: `${title} · Diagrams`,
+    title: `${title} · Sequences`,
     description,
     openGraph: { title, description, type: "article", url: `${base}/d/${id}` },
     twitter: { card: "summary_large_image", title, description },
@@ -66,7 +66,7 @@ export default async function DiagramPage({ params }: { params: Promise<{ id: st
             <span style={{ width: 16, height: 10, background: "#eab308", borderRadius: 2 }} />
             <span style={{ width: 16, height: 10, background: "#22c55e", borderRadius: 2 }} />
           </span>
-          <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em", color: "#111827" }}>Diagrams</span>
+          <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em", color: "#111827" }}>Sequences</span>
         </a>
         <a href={`/svg/${id}`} style={{ fontSize: 13, fontWeight: 600, color: "#4b5563", textDecoration: "none" }}>Download SVG</a>
       </header>
