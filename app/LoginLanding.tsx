@@ -33,10 +33,10 @@ export default function LoginLanding() {
 
       <div style={{ position: "relative", zIndex: 1, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 18, padding: 24 }}>
         <div className="ll-icon">
-          <Image src="/icon-512.png" alt="Diagrams" width={88} height={88} priority
+          <Image src="/icon-512.png" alt="Sequences" width={88} height={88} priority
             style={{ borderRadius: 20, boxShadow: "0 12px 40px rgba(15,23,42,0.16)" }} />
         </div>
-        <h1 className="ll-in ll-t1" style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.02em", color: "#111827", margin: 0 }}>Diagrams</h1>
+        <h1 className="ll-in ll-t1" style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.02em", color: "#111827", margin: 0 }}>Sequences</h1>
         <p className="ll-in ll-t2" style={{ fontSize: 15, color: "#6b7280", margin: 0, maxWidth: 340, lineHeight: 1.5 }}>
           Beautiful sequence diagrams, generated from plain English.
         </p>

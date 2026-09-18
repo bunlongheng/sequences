@@ -25,7 +25,7 @@ const Brand = () => (
       <div style={{ width: 22, height: 13, background: "#a78bfa", borderRadius: 3 }} />
       <div style={{ width: 22, height: 13, background: "#34d399", borderRadius: 3 }} />
     </div>
-    <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 1, color: "rgba(255,255,255,0.92)" }}>Diagrams</div>
+    <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 1, color: "rgba(255,255,255,0.92)" }}>Sequences</div>
   </div>
 );
 

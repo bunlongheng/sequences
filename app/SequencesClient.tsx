@@ -1092,8 +1092,8 @@ export default function SequencesClient({ user, sequences: initial }: { user: Sh
       <header className="dc-header" style={{ background: "#ffffff", borderBottom: "1px solid #e4e6e8", height: 56, position: "sticky", top: 0, zIndex: 10 }}>
       <div style={{ maxWidth: 1600, margin: "0 auto", padding: "0 32px", height: "100%", display: "flex", alignItems: "center", gap: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-          <Image src="/icon-512.png" alt="Diagrams" width={28} height={28} style={{ borderRadius: 8 }} />
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#1c1e21", letterSpacing: "-0.01em" }}>Diagrams</span>
+          <Image src="/icon-512.png" alt="Sequences" width={28} height={28} style={{ borderRadius: 8 }} />
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#1c1e21", letterSpacing: "-0.01em" }}>Sequences</span>
         </div>
 
         {/* Search */}

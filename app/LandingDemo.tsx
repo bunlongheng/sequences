@@ -37,8 +37,8 @@ export default function LandingDemo({ sequences }: { sequences: Demo[] }) {
         {/* Header — showcase only, no sign-in (login is owner-only). */}
         <header style={{ height: 52, display: "flex", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Image src="/icon-512.png" alt="Diagrams" width={32} height={32} priority style={{ borderRadius: 8 }} />
-            <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.01em", color: "#111827" }}>Diagrams</span>
+            <Image src="/icon-512.png" alt="Sequences" width={32} height={32} priority style={{ borderRadius: 8 }} />
+            <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-0.01em", color: "#111827" }}>Sequences</span>
           </div>
         </header>
 
@@ -49,7 +49,7 @@ export default function LandingDemo({ sequences }: { sequences: Demo[] }) {
               <span>Beautiful</span>
               <span>Clean</span>
               <span>Elegant</span>
-            </span>{" "}Diagrams
+            </span>{" "}Sequences
           </h1>
           <p style={{ fontSize: 14, color: "#64748b", margin: "8px auto 0", maxWidth: 720, lineHeight: 1.45 }}>
             AI-friendly and AI-integrated - agents create these via MCP or plain English.
@@ -109,7 +109,7 @@ export default function LandingDemo({ sequences }: { sequences: Demo[] }) {
         .ld-card:hover img { transform: scale(1.045); }
         .ld-life { animation: ldFlow 48s linear infinite; }
         .ld-blob { animation: ldBlob 18s ease-in-out infinite; }
-        /* Rotating word before "Diagrams" — CSS-only, 6 words, ~2s each. */
+        /* Rotating word before "Sequences" — CSS-only, 6 words, ~2s each. */
         .ld-flip { display: inline-grid; justify-items: end; vertical-align: bottom; color: #7c3aed; }
         .ld-flip > span { grid-area: 1 / 1; opacity: 0; white-space: nowrap; animation: ldflip 6s infinite; }
         .ld-flip > span:nth-child(1) { animation-delay: 0s; }
