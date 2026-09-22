@@ -1330,7 +1330,7 @@ export default function SequencesClient({ user, sequences: initial }: { user: Sh
                         style={{ padding: "4px 12px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, letterSpacing: "0.01em",
                           background: on ? "#ffffff" : "transparent", color: on ? "#1c1e21" : "#9aa0a6",
                           boxShadow: on ? "0 1px 3px rgba(0,0,0,0.14)" : "none", transition: "all 0.12s" }}>
-                        {label}{v === "demo" ? ` ${demoSequences.length}` : ""}
+                        {label}
                       </button>
                     );
                   })}
