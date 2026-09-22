@@ -63,6 +63,34 @@ function loadShared(): Set<string> {
   try { return new Set(JSON.parse(lsGet(LS_SHARED) ?? "[]")); } catch { return new Set(); }
 }
 
+// A diagram that arrives while you are looking at the library announces itself:
+// a small confetti burst over its tile, the same fireflies a deletion scatters,
+// and the tile blinks. Deliberately smaller than the editor's import confetti -
+// this is a notification, not a celebration of something you just did.
+async function celebrateArrival(el: Element) {
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  const box = el.getBoundingClientRect();
+  if (!box.width || !box.height) return;
+  try {
+    const { default: confetti } = await import("canvas-confetti");
+    confetti({
+      particleCount: 34,
+      spread: 52,
+      startVelocity: 20,
+      scalar: 0.55,
+      ticks: 110,
+      gravity: 0.9,
+      disableForReducedMotion: true,
+      colors: ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#06b6d4", "#3b82f6", "#8b5cf6"],
+      origin: {
+        x: (box.left + box.width / 2) / window.innerWidth,
+        y: (box.top + box.height / 2) / window.innerHeight,
+      },
+    });
+  } catch { /* confetti is decoration - never let it break the page */ }
+  fireflies(el);
+}
+
 // ── Card preview: the real diagram ───────────────────────────────────────────
 // Same renderer and same saved settings as the editor and /svg/<id>, so the
 // card shows the diagram itself, not a sketch of it. The root width/height are
@@ -823,7 +851,7 @@ function SequenceCard({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCo
         ...(isNew ? {
           border: "2px solid #6366f1",
           boxShadow: "0 0 0 3px rgba(99,102,241,0.25), 0 8px 28px rgba(99,102,241,0.15)",
-          animation: "dc-blink 0.4s ease-in-out 2",
+          animation: "dc-blink 0.45s ease-in-out 3",
         } : null),
       }}
     >
@@ -907,11 +935,11 @@ function DiagramRow({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCode
 }) {
   const tags = d.tags ?? [];
   return (
-    <div onClick={onOpen} className="dc-row"
+    <div onClick={onOpen} className={`dc-row${isNew ? " dc-new-card" : ""}`}
       role="button" tabIndex={0} aria-label={`Open ${d.title}`}
       data-seq-id={d.id}
       onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
-      style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 14px", borderBottom: "1px solid #eef0f2", cursor: "pointer", background: isNew ? "#f5f3ff" : undefined }}>
+      style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 14px", borderBottom: "1px solid #eef0f2", cursor: "pointer", background: isNew ? "#f5f3ff" : undefined, animation: isNew ? "dc-blink 0.45s ease-in-out 3" : undefined }}>
       {/* The diagram itself at tile size; a letter tile when it is not a sequence */}
       <SequenceRowThumb d={d} eager={eager} />
       {/* Title + meta (tiered) */}
@@ -964,6 +992,43 @@ export default function SequencesClient({ user, sequences: initial }: { user: Sh
   const [shared] = useState<Set<string>>(loadShared);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [newCardId, setNewCardId] = useState<string | null>(null);
+
+  // Watch for diagrams that appear while the library is open - an agent over
+  // MCP, a curl from a script, another tab. The index had no idea any of these
+  // happened, which is why newCardId was set nowhere and the blink never ran.
+  const knownIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => { knownIdsRef.current = new Set(sequences.map(d => d.id)); }, [sequences]);
+  useEffect(() => {
+    let stopped = false;
+    const poll = async () => {
+      if (document.hidden || stopped) return;
+      try {
+        const res = await fetch("/api/sequences", { cache: "no-store" });
+        if (!res.ok) return;
+        const rows: Sequence[] = await res.json();
+        const fresh = rows.filter(r => !knownIdsRef.current.has(r.id));
+        if (!fresh.length || stopped) return;
+        setSequences(prev => [...fresh, ...prev.filter(p => !fresh.some(f => f.id === p.id))]);
+        setNewCardId(fresh[0].id);
+      } catch { /* a failed poll is not worth surfacing */ }
+    };
+    const id = setInterval(poll, 20000);
+    document.addEventListener("visibilitychange", poll);
+    return () => { stopped = true; clearInterval(id); document.removeEventListener("visibilitychange", poll); };
+  }, []);
+
+  // Fire once the new tile is actually in the DOM, then release the highlight.
+  useEffect(() => {
+    if (!newCardId) return;
+    const el = document.querySelector(`[data-seq-id="${newCardId}"]`);
+    if (el) {
+      const box = el.getBoundingClientRect();
+      if (box.top < 0 || box.bottom > window.innerHeight) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      requestAnimationFrame(() => celebrateArrival(el));
+    }
+    const t = setTimeout(() => setNewCardId(null), 4000);
+    return () => clearTimeout(t);
+  }, [newCardId]);
   const [showMenu, setShowMenu] = useState(false);
   const [search, setSearch] = useState("");
   // Photo sources in order: the session's Google photo, then the CDN copy, then
