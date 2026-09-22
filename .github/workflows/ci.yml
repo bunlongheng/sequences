@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - migrate-nextauth-drop-supabase
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: sequences
+          # Trust auth: no password, so nothing credential-shaped is committed.
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Non-secret e2e boot config. The suite exercises public/unauthenticated
+      # routes, so the Google provider is never actually called; it only needs
+      # to construct. Real secrets are generated at runtime in the step below so
+      # no secret-shaped literal is committed.
+      DATABASE_URL: postgres://postgres@localhost:5432/sequences
+      DATABASE_SSL: "false"
+      AUTH_TRUST_HOST: "true"
+      GOOGLE_CLIENT_ID: e2e-dummy-client-id
+      OWNER_EMAIL: owner@example.com
+      # LOCAL_DEV enables the localhost owner-bypass (host-gated in lib/is-local),
+      # so /api/auth/me reports authorized. OWNER_USER_ID is deliberately UNSET:
+      # the bypass says "owner" but the data routes cannot resolve an owner row,
+      # so /api/sequences still returns 401 - exactly what the e2e suite asserts.
+      LOCAL_DEV: "true"
+      NEXT_PUBLIC_APP_URL: https://sequences-bheng.vercel.app
+      NEXT_PUBLIC_SITE_URL: https://sequences-bheng.vercel.app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # Throwaway values, generated fresh each run - never real credentials.
+      # SEQUENCES_API_SECRET must be set (unset makes /api/ai/sequences return 500 instead
+      # of the 401 the suite asserts); AUTH_SECRET/GOOGLE_CLIENT_SECRET only need
+      # to be non-empty for NextAuth to construct.
+      - name: Generate throwaway e2e secrets
+        run: |
+          {
+            echo "AUTH_SECRET=$(openssl rand -hex 16)"
+            echo "SEQUENCES_API_SECRET=e2e-$(openssl rand -hex 8)"
+            echo "GOOGLE_CLIENT_SECRET=e2e-$(openssl rand -hex 8)"
+          } >> "$GITHUB_ENV"
+
+      - run: npx tsc --noEmit
+      - run: npm run test
+
+      # Build the schema from scratch, in filename order, so the e2e server has
+      # a real database to answer against.
+      - name: Apply database migrations
+        run: |
+          for f in $(ls db/migrations/*.sql | sort); do
+            echo "applying $f"
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e

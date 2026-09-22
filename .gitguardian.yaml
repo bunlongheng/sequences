@@ -1,0 +1,22 @@
+# GitGuardian / ggshield config
+#
+# The CI workflow (.github/workflows/ci.yml) boots an ephemeral Postgres service
+# container and runs unit + Playwright e2e with THROWAWAY, non-secret values:
+#   - POSTGRES_PASSWORD / DATABASE_URL -> default "postgres"/"test" on localhost,
+#     created and destroyed inside the GitHub Actions run
+#   - AUTH_SECRET / GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET -> literal dummies
+#     ("ci-e2e-throwaway...", "ci-e2e-dummy")
+# These are NOT real credentials. Real secrets are read from process.env at runtime
+# (see auth.ts) and live only in Vercel env vars, never in the repo.
+#
+# The 2026-08-04 "Generic Password" incident (commit 0cae75a) was this test DB
+# password -> a false positive. These ignored-matches keep it from re-flagging.
+version: 2
+secret:
+  ignored-matches:
+    - name: "CI throwaway Postgres password (default container pw)"
+      match: "postgres://postgres:postgres@localhost:5432/sequences"
+    - name: "CI test DATABASE_URL (ephemeral service container)"
+      match: "postgresql://test:test@localhost:5432/test"
+    - name: "CI e2e dummy AUTH_SECRET (not a real credential)"
+      match: "ci-e2e-throwaway-secret-not-a-real-credential"

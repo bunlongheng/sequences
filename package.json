@@ -1,0 +1,65 @@
+{
+  "name": "sequences",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3002",
+    "build": "next build",
+    "start": "next start -p 3002",
+    "prod": "next build && next start -p 3002 --hostname 0.0.0.0",
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:all": "vitest run --coverage && playwright test",
+    "migrate": "node db/migrate.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
+    "@auth/pg-adapter": "^1.11.2",
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/prismjs": "^1.26.6",
+    "canvas-confetti": "^1.9.4",
+    "lucide-react": "^0.574.0",
+    "lz-string": "^1.5.0",
+    "mermaid": "^11.13.0",
+    "next": "^15.1.0",
+    "next-auth": "^5.0.0-beta.31",
+    "pg": "^8.20.0",
+    "prismjs": "^1.30.0",
+    "qrcode.react": "^4.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-simple-code-editor": "^0.14.1"
+  },
+  "overrides": {
+    "sharp": ">=0.35.0",
+    "next": {
+      "postcss": "8.5.22"
+    }
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@playwright/test": "^1.59.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/lz-string": "^1.5.0",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^6.0.2",
+    "@vitest/coverage-v8": "^4.1.7",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9",
+    "eslint-config-next": "^15",
+    "jsdom": "^25.0.1",
+    "msw": "^2.14.6",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.2"
+  }
+}

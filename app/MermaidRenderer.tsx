@@ -1,0 +1,103 @@
+"use client";
+import { useEffect, useRef, useState } from "react";
+
+interface Props {
+  code: string;
+  dark?: boolean;
+  onDims?: (w: number, h: number) => void;
+}
+
+export default function MermaidRenderer({ code, dark = false, onDims }: Props) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!code.trim() || !ref.current) return;
+    let cancelled = false;
+
+    async function render() {
+      const mermaid = (await import("mermaid")).default;
+
+      mermaid.initialize({
+        startOnLoad: false,
+        // strict: encodes HTML in labels, disables click handlers - avoids an XSS foothold
+        securityLevel: "strict",
+        fontFamily: "Inter, system-ui, sans-serif",
+        theme: "base",
+        themeVariables: dark ? {
+          primaryColor: "#2a2d3a",
+          primaryTextColor: "#e2e8f0",
+          primaryBorderColor: "#3f4354",
+          lineColor: "#64748b",
+          secondaryColor: "#1e2130",
+          tertiaryColor: "#252836",
+          background: "#151720",
+          mainBkg: "#1e2130",
+          nodeBorder: "#3f4354",
+          clusterBkg: "#1a1d2e",
+          titleColor: "#e2e8f0",
+          edgeLabelBackground: "#1e2130",
+          fontFamily: "Inter, system-ui, sans-serif",
+        } : {
+          primaryColor: "#f1f5f9",
+          primaryTextColor: "#1c1e21",
+          primaryBorderColor: "#e2e8f0",
+          lineColor: "#c0c8d4",
+          secondaryColor: "#f8fafc",
+          tertiaryColor: "#f1f5f9",
+          background: "#ffffff",
+          mainBkg: "#f8fafc",
+          nodeBorder: "#e2e8f0",
+          clusterBkg: "#f8fafc",
+          titleColor: "#1c1e21",
+          edgeLabelBackground: "#ffffff",
+          fontFamily: "Inter, system-ui, sans-serif",
+          fontSize: "14px",
+          lineWidth: "1px",
+        },
+      });
+
+      try {
+        const id = `mm-${Math.random().toString(36).slice(2)}`;
+        const { svg } = await mermaid.render(id, code);
+        if (!cancelled && ref.current) {
+          ref.current.innerHTML = svg;
+          const svgEl = ref.current.querySelector("svg");
+          if (svgEl) {
+            const w = parseFloat(svgEl.getAttribute("width") || "0");
+            const h = parseFloat(svgEl.getAttribute("height") || "0");
+            svgEl.removeAttribute("width");
+            svgEl.removeAttribute("height");
+            svgEl.style.width = "100%";
+            svgEl.style.height = "100%";
+            svgEl.style.maxWidth = "100%";
+            // thinner lines, remove green borders
+            svgEl.querySelectorAll(".mindmap-node-label, .mindmap-node").forEach((el) => {
+              (el as HTMLElement).style.stroke = "none";
+              (el as HTMLElement).style.border = "none";
+            });
+            if (w && h && onDims) onDims(w, h);
+            else if (onDims) {
+              const bb = svgEl.getBoundingClientRect();
+              if (bb.width && bb.height) onDims(bb.width, bb.height);
+            }
+          }
+          setError(null);
+        }
+      } catch (e: unknown) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Render error");
+      }
+    }
+
+    render();
+    return () => { cancelled = true; };
+  }, [code, dark]);
+
+  if (error) return (
+    <div style={{ padding: 24, color: "#ef4444", fontSize: 13, fontFamily: "monospace", whiteSpace: "pre-wrap" }}>
+      {error}
+    </div>
+  );
+
+  return <div ref={ref} style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }} />;
+}
