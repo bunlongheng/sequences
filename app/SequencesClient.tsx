@@ -23,6 +23,7 @@ type Sequence = {
   sequence_type: string; created_at: string; updated_at: string; code: string;
   tags: string[];
   youtube_id?: string | null;
+  locked?: boolean;
   settings?: { opts?: Partial<Opts>; layout?: Partial<Layout> } | null;
 };
 
@@ -822,9 +823,9 @@ function RenameModal({ title, onSave, onClose }: { title: string; onSave: (t: st
 }
 
 // ── Card ──────────────────────────────────────────────────────────────────────
-function SequenceCard({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCode, deleting, tagColorMap, isNew, showTags, eager }: {
+function SequenceCard({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCode, onToggleLock, deleting, tagColorMap, isNew, showTags, eager }: {
   d: Sequence; isShared: boolean;
-  onOpen: () => void; onDelete: () => void; onRename: () => void; onTag: () => void; onViewCode: () => void;
+  onOpen: () => void; onDelete: () => void; onRename: () => void; onTag: () => void; onViewCode: () => void; onToggleLock: () => void;
   deleting: boolean; tagColorMap: Map<string, typeof TAG_PALETTE[0]>; isNew: boolean; showTags: boolean; eager: boolean;
 }) {
   const tags = d.tags ?? [];
@@ -908,8 +909,12 @@ function SequenceCard({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCo
             <path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l7.3-7.3a1 1 0 0 0 0-1.41L12 2z"/><circle cx="7" cy="7" r="1.5" fill="#8a8d91"/>
           </svg>
         </button>
-        <button onClick={onDelete} title="Delete" aria-label="Delete sequence" disabled={deleting}
-          style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #e4e6e8", background: "#ffffff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", opacity: deleting ? 0.5 : 1 }}>
+        <button onClick={onToggleLock} title={d.locked ? "Unlock" : "Lock so it cannot be deleted"} aria-label={d.locked ? "Unlock sequence" : "Lock sequence"}
+          style={{ width: 26, height: 26, borderRadius: 7, border: `1px solid ${d.locked ? "#0f766e40" : "#e4e6e8"}`, background: d.locked ? "#0f766e14" : "#ffffff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+          <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={d.locked ? "#0f766e" : "#8a8d91"} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </button>
+        <button onClick={onDelete} title={d.locked ? "Locked - unlock to delete" : "Delete"} aria-label="Delete sequence" disabled={deleting || !!d.locked}
+          style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #e4e6e8", background: "#ffffff", cursor: d.locked ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", opacity: deleting || d.locked ? 0.35 : 1 }}>
           <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
           </svg>
@@ -928,9 +933,9 @@ const LETTER_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#
 function letterFor(title: string) { const m = (title || "").match(/[a-z0-9]/i); return m ? m[0].toUpperCase() : "#"; }
 function colorFor(title: string) { let h = 0; for (let i = 0; i < title.length; i++) h = (Math.imul(h, 31) + title.charCodeAt(i)) >>> 0; return LETTER_COLORS[h % LETTER_COLORS.length]; }
 function tint(hex: string, a: number) { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; }
-function DiagramRow({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCode, deleting, tagColorMap, isNew, showTags, eager }: {
+function DiagramRow({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCode, onToggleLock, deleting, tagColorMap, isNew, showTags, eager }: {
   d: Sequence; isShared: boolean;
-  onOpen: () => void; onDelete: () => void; onRename: () => void; onTag: () => void; onViewCode: () => void;
+  onOpen: () => void; onDelete: () => void; onRename: () => void; onTag: () => void; onViewCode: () => void; onToggleLock: () => void;
   deleting: boolean; tagColorMap: Map<string, typeof TAG_PALETTE[0]>; isNew: boolean; showTags: boolean; eager: boolean;
 }) {
   const tags = d.tags ?? [];
@@ -967,7 +972,11 @@ function DiagramRow({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCode
         <button onClick={onTag} title="Tags" aria-label="Edit tags" style={rowActionBtn}>
           <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#8a8d91" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l7.3-7.3a1 1 0 0 0 0-1.41L12 2z"/><circle cx="7" cy="7" r="1.5" fill="#8a8d91"/></svg>
         </button>
-        <button onClick={onDelete} title="Delete" aria-label="Delete" disabled={deleting} style={{ ...rowActionBtn, opacity: deleting ? 0.5 : 1 }}>
+        <button onClick={onToggleLock} title={d.locked ? "Unlock" : "Lock so it cannot be deleted"} aria-label={d.locked ? "Unlock" : "Lock"}
+          style={{ ...rowActionBtn, border: `1px solid ${d.locked ? "#0f766e40" : "#e4e6e8"}`, background: d.locked ? "#0f766e14" : "#ffffff" }}>
+          <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={d.locked ? "#0f766e" : "#8a8d91"} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </button>
+        <button onClick={onDelete} title={d.locked ? "Locked - unlock to delete" : "Delete"} aria-label="Delete" disabled={deleting || !!d.locked} style={{ ...rowActionBtn, cursor: d.locked ? "not-allowed" : "pointer", opacity: deleting || d.locked ? 0.35 : 1 }}>
           <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
         </button>
       </div>
@@ -1238,10 +1247,33 @@ export default function SequencesClient({ user, sequences: initial }: { user: Sh
   // Demo keeps its curated order; personal sorts by most recently touched.
   const allSequences = scope === "demo" ? filtered : filtered.sort(byUpdated);
 
+  // A locked diagram is protected from deletion: it is embedded somewhere this
+  // app cannot see - a README, a doc, the demo wall - so a stray click here
+  // would break someone else's page.
+  const toggleLock = useCallback(async (d: Sequence) => {
+    const next = !d.locked;
+    setSequences(prev => prev.map(x => (x.id === d.id ? { ...x, locked: next } : x)));
+    try {
+      const res = await fetch(`/api/sequences/${d.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locked: next }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      showToast(next ? "Locked" : "Unlocked", { color: next ? "#0f766e" : "#8a8d91" });
+    } catch {
+      setSequences(prev => prev.map(x => (x.id === d.id ? { ...x, locked: !next } : x)));
+      showToast("Could not change the lock", { color: "#ef4444" });
+    }
+  }, []);
+
   const cardProps = (d: Sequence) => ({
     d, isShared: shared.has(d.id),
     onOpen: () => openInEditor(d),
-    onDelete: () => setConfirmDeleteId(d.id),
+    onDelete: () => {
+      if (d.locked) { showToast("Locked. Unlock it first.", { color: "#f59e0b" }); return; }
+      setConfirmDeleteId(d.id);
+    },
+    onToggleLock: () => toggleLock(d),
     onRename: () => setRenamingSequence(d),
     onTag: () => setTaggingSequence(d),
     onViewCode: () => setCodeSequence(d),
