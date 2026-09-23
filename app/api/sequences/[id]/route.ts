@@ -40,9 +40,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const isApiCall = !!req.headers.get("authorization")?.trim();
 
     // Build dynamic SET clause from allowed fields
+    // "locked" is owner-UI only: an automation holding the Bearer must not be
+    // able to unlock a diagram and then delete it in the next call.
     const allowed = isApiCall
       ? ["title", "code", "settings", "is_public"]
-      : ["title", "code", "tags", "settings", "is_public"];
+      : ["title", "code", "tags", "settings", "is_public", "locked"];
     const setClauses: string[] = [];
     const values: unknown[] = [];
     let paramIdx = 1;
@@ -83,11 +85,20 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
+    // A locked diagram is a dependency of something outside this app - a README
+    // image, a Confluence page, the public demo wall. The guard is in the SQL
+    // rather than a read-then-delete so a concurrent unlock cannot slip past it.
     const { rowCount } = await db.query(
-      "DELETE FROM sequences WHERE id = $1 AND user_id = $2",
+      "DELETE FROM sequences WHERE id = $1 AND user_id = $2 AND locked = false",
       [id, userId]
     );
-    if (rowCount === 0) return NextResponse.json({ error: "Not found or not owner" }, { status: 404 });
+    if (rowCount === 0) {
+      const { rows } = await db.query("SELECT locked FROM sequences WHERE id = $1 AND user_id = $2", [id, userId]);
+      if (rows[0]?.locked) {
+        return NextResponse.json({ error: "This sequence is locked. Unlock it before deleting.", locked: true }, { status: 423 });
+      }
+      return NextResponse.json({ error: "Not found or not owner" }, { status: 404 });
+    }
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
     console.error("[diagrams/id] DELETE error:", err instanceof Error ? err.message : String(err));
