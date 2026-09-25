@@ -22,7 +22,9 @@ const getDiagram = cache(async (id: string): Promise<Row | null> => {
 });
 
 function render(row: Row) {
-  const opts: Opts = { ...DEFAULT_OPTS, ...(row.settings?.opts ?? {}) };
+  // Compact, like /svg/<id> and the editor: Auto is forced on for the public
+  // view so a stored hand-tuned layout never widens the row pitch for readers.
+  const opts: Opts = { ...DEFAULT_OPTS, ...(row.settings?.opts ?? {}), autoLayout: true };
   const layout: Layout = { ...DEFAULT_LAYOUT, ...(row.settings?.layout ?? {}) };
   const diagram = parse(row.code);
   if (!diagram.title && row.title) diagram.title = row.title;
