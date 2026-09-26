@@ -909,7 +909,7 @@ function SequenceCard({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCo
             <path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l7.3-7.3a1 1 0 0 0 0-1.41L12 2z"/><circle cx="7" cy="7" r="1.5" fill="#8a8d91"/>
           </svg>
         </button>
-        <button onClick={onToggleLock} title={d.locked ? "Unlock" : "Lock so it cannot be deleted"} aria-label={d.locked ? "Unlock sequence" : "Lock sequence"}
+        <button onClick={onToggleLock} title={d.locked ? "Unlock" : "Lock so it cannot be edited or deleted"} aria-label={d.locked ? "Unlock sequence" : "Lock sequence"}
           style={{ width: 26, height: 26, borderRadius: 7, border: `1px solid ${d.locked ? "#0f766e40" : "#e4e6e8"}`, background: d.locked ? "#0f766e14" : "#ffffff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
           <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={d.locked ? "#0f766e" : "#8a8d91"} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </button>
@@ -972,7 +972,7 @@ function DiagramRow({ d, isShared, onOpen, onDelete, onRename, onTag, onViewCode
         <button onClick={onTag} title="Tags" aria-label="Edit tags" style={rowActionBtn}>
           <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#8a8d91" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l7.3-7.3a1 1 0 0 0 0-1.41L12 2z"/><circle cx="7" cy="7" r="1.5" fill="#8a8d91"/></svg>
         </button>
-        <button onClick={onToggleLock} title={d.locked ? "Unlock" : "Lock so it cannot be deleted"} aria-label={d.locked ? "Unlock" : "Lock"}
+        <button onClick={onToggleLock} title={d.locked ? "Unlock" : "Lock so it cannot be edited or deleted"} aria-label={d.locked ? "Unlock" : "Lock"}
           style={{ ...rowActionBtn, border: `1px solid ${d.locked ? "#0f766e40" : "#e4e6e8"}`, background: d.locked ? "#0f766e14" : "#ffffff" }}>
           <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={d.locked ? "#0f766e" : "#8a8d91"} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </button>
@@ -1247,7 +1247,7 @@ export default function SequencesClient({ user, sequences: initial }: { user: Sh
   // Demo keeps its curated order; personal sorts by most recently touched.
   const allSequences = scope === "demo" ? filtered : filtered.sort(byUpdated);
 
-  // A locked diagram is protected from deletion: it is embedded somewhere this
+  // A locked diagram is frozen (no edits, no delete): it is embedded somewhere this
   // app cannot see - a README, a doc, the demo wall - so a stray click here
   // would break someone else's page.
   const toggleLock = useCallback(async (d: Sequence) => {

@@ -78,6 +78,7 @@ export default function SequenceEditor() {
     const [diagramCreatedAt, setDiagramCreatedAt] = useState<string | null>(null);
     const [diagramDbTitle, setDiagramDbTitle] = useState<string | null>(null);
     const [isSharedDiagram, setIsSharedDiagram] = useState(false);
+    const [isLocked, setIsLocked] = useState(false);
     const [titleEdit, setTitleEdit] = useState<{ value: string; rect: DOMRect } | null>(null);
 
 
@@ -132,14 +133,14 @@ export default function SequenceEditor() {
             if (titleEl) titleEl.textContent = t;
         }
         showToast(`Title saved`, { color: "#7c3aed" });
-        if (savedDiagramId && isOwner) {
+        if (savedDiagramId && isOwner && !isLocked) {
             fetch(`/api/sequences/${savedDiagramId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ title: t, code: newCode }),
             }).then(r => { if (!r.ok) r.json().then(e => showToast(`Save failed: ${e.error}`, { color: "#ef4444" })).catch(() => {}); });
         }
-    }, [code, savedDiagramId, isOwner, svgWrapRef]);
+    }, [code, savedDiagramId, isOwner, isLocked, svgWrapRef]);
 
 
     const clampPan = useCallback((p: { x: number; y: number }): { x: number; y: number } => {
@@ -368,6 +369,7 @@ export default function SequenceEditor() {
                     if (t) pendingTitleToastRef.current = t;
                 }
                 if (typeof d?.is_public === "boolean") setIsSharedDiagram(d.is_public);
+                setIsLocked(!!d?.locked);
                 if (d?.created_at) setDiagramCreatedAt(d.created_at);
                 if (d?.title) setDiagramDbTitle(d.title);
                 // Open compact: the saved layout may predate the current auto
@@ -591,13 +593,13 @@ export default function SequenceEditor() {
     const undoStack = useRef<Opts[]>([]);
     const saveDiagramRef = useRef<(() => void) | null>(null);
     const saveSettings = useCallback((newOpts: Opts, newLayout: Layout) => {
-        if (!savedDiagramId || !isOwner) return;
+        if (!savedDiagramId || !isOwner || isLocked) return;
         fetch(`/api/sequences/${savedDiagramId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ settings: { opts: newOpts, layout: newLayout } }),
         }).catch(() => {});
-    }, [savedDiagramId, isOwner]);
+    }, [savedDiagramId, isOwner, isLocked]);
 
     const upd = (p: Partial<Opts>) => setOpts(o => {
         pushUndo(undoStack.current, o);
@@ -818,7 +820,7 @@ No explanation, no markdown, just the JSON object.`,
     // ── Autosave on code change (update existing record) ──────────────────
     const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     useEffect(() => {
-        if (!isOwner || !savedDiagramId || !code.trim()) return;
+        if (!isOwner || !savedDiagramId || !code.trim() || isLocked) return;
         if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
         autoSaveTimer.current = setTimeout(() => {
             fetch(`/api/sequences/${savedDiagramId}`, {
@@ -828,7 +830,7 @@ No explanation, no markdown, just the JSON object.`,
             }).catch(() => {});
         }, 1500);
         return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
-    }, [code, savedDiagramId, isOwner]);
+    }, [code, savedDiagramId, isOwner, isLocked]);
 
     const PROD_URL = "https://sequences-bheng.vercel.app";
     const buildShareUrl = useCallback(() => {
@@ -1440,6 +1442,23 @@ No explanation, no markdown, just the JSON object.`,
                         </div>
                     )}
 
+                    {/* Lock: frozen for embeds (README, Confluence) - no edits, no delete */}
+                    {savedDiagramId && isOwner && (
+                        <button onClick={async () => {
+                            const next = !isLocked;
+                            setIsLocked(next);
+                            const r = await fetch(`/api/sequences/${savedDiagramId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ locked: next }) }).catch(() => null);
+                            if (!r?.ok) { setIsLocked(!next); showToast("Lock change failed", { color: "#ef4444" }); return; }
+                            showToast(next ? "Locked - no edits, no delete" : "Unlocked", { color: next ? "#0f766e" : "#8a8d91" });
+                        }}
+                            title={isLocked ? "Locked - embedded elsewhere. No edits, no delete. Click to unlock" : "Lock - freeze this diagram for README and Confluence embeds"}
+                            aria-label={isLocked ? "Unlock" : "Lock"}
+                            style={{ display: "flex", alignItems: "center", gap: 5, padding: "0 8px", height: 30, borderRadius: 8, border: "none", background: isLocked ? "rgba(15,118,110,0.15)" : "transparent", color: isLocked ? "#14b8a6" : "#64748b", cursor: "pointer", fontSize: 13, fontWeight: isLocked ? 600 : 400, transition: "all 0.1s" }}>
+                            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            {!isMobile && (isLocked ? "Locked" : "Lock")}
+                        </button>
+                    )}
+
                     {/* separator */}
                     <div style={{ width: 1, height: 18, background: ut.headerBorder, flexShrink: 0, margin: "0 2px" }} />
 
@@ -1506,6 +1525,7 @@ No explanation, no markdown, just the JSON object.`,
                                 <Editor
                                     value={code}
                                     onValueChange={setCode}
+                                    readOnly={isLocked}
                                     highlight={highlight}
                                     padding={16}
                                     spellCheck={false}
@@ -1672,6 +1692,7 @@ No explanation, no markdown, just the JSON object.`,
                         <Editor
                             value={code}
                             onValueChange={setCode}
+                            readOnly={isLocked}
                             highlight={highlight}
                             padding={16}
                             spellCheck={false}
