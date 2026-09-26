@@ -65,6 +65,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     if (setClauses.length === 0) return NextResponse.json({ error: "No valid fields" }, { status: 400 });
 
+    // A locked diagram is frozen, not just undeletable: it is embedded in a
+    // README or a Confluence page that expects it to stay as it is. Any content
+    // change is refused with 423 unless this same request is the owner unlocking.
+    const touchesContent = allowed.some(k => k !== "locked" && body[k] !== undefined);
+    if (touchesContent && body.locked !== false) {
+      const { rows } = await db.query("SELECT locked FROM sequences WHERE id = $1 AND user_id = $2", [id, userId]);
+      if (rows[0]?.locked) {
+        return NextResponse.json({ error: "This sequence is locked. Unlock it before editing.", locked: true }, { status: 423 });
+      }
+    }
+
     setClauses.push("updated_at = now()");
     values.push(id, userId);
 
