@@ -203,10 +203,15 @@ export default function SequenceEditor() {
         const onWheel = (e: WheelEvent) => {
             e.preventDefault();
             if (e.ctrlKey || e.metaKey) {
-                // Pinch-to-zoom gesture
-                const speed = e.deltaMode === 1 ? 0.036 : 0.0024;
+                // Pinch (ctrlKey) / Cmd+wheel (metaKey) zoom, anchored at the cursor
+                const factor = Math.pow(2, -e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.002) * (e.ctrlKey ? 10 : 1));
                 const oldZoom = zoomRef.current;
-                const newZoom = parseFloat(Math.min(4, Math.max(0.1, oldZoom - e.deltaY * speed * oldZoom)).toFixed(3));
+                const newZoom = parseFloat(Math.min(4, Math.max(0.1, oldZoom * factor)).toFixed(3));
+                const ratio = newZoom / oldZoom;
+                const rect = el.getBoundingClientRect();
+                const ox = e.clientX - (rect.left + rect.width / 2);
+                const oy = e.clientY - (rect.top + rect.height / 2);
+                panRef.current = { x: ox * (1 - ratio) + panRef.current.x * ratio, y: oy * (1 - ratio) + panRef.current.y * ratio };
                 zoomRef.current = newZoom;
                 flashZoomHud(newZoom);
             } else {
@@ -1054,10 +1059,9 @@ No explanation, no markdown, just the JSON object.`,
                         const rect = canvasRef.current!.getBoundingClientRect();
                         const ox = e.clientX - (rect.left + rect.width / 2);
                         const oy = e.clientY - (rect.top + rect.height / 2);
-                        // 10x smoother: speed-based instead of fixed multiplier
-                        const speed = e.deltaMode === 1 ? 0.036 : 0.0024;
+                        const factor = Math.pow(2, -e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.002) * (e.ctrlKey ? 10 : 1));
                         const oldZoom = zoomRef.current;
-                        const newZoom = parseFloat(Math.min(4, Math.max(0.2, oldZoom - e.deltaY * speed * oldZoom)).toFixed(4));
+                        const newZoom = parseFloat(Math.min(4, Math.max(0.2, oldZoom * factor)).toFixed(4));
                         const ratio = newZoom / oldZoom;
                         zoomRef.current = newZoom;
                         panRef.current = { x: ox * (1 - ratio) + panRef.current.x * ratio, y: oy * (1 - ratio) + panRef.current.y * ratio };
