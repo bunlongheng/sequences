@@ -23,17 +23,23 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // with the icon and wordmark, the grey ground, the diagram (title and byline
 // already drawn inside it) in a white card.
 const BG = "#eceef2";
-const ICON = `data:image/png;base64,${readFileSync(join(process.cwd(), "public/icon-512.png")).toString("base64")}`;
+// Read per render, not at module load: a missing file on serverless must
+// cost the icon, never the whole card.
+const iconUri = () => {
+  try { return `data:image/png;base64,${readFileSync(join(process.cwd(), "public/icon-512.png")).toString("base64")}`; }
+  catch { return null; }
+};
 
-const TopBar = () => (
+const TopBar = ({ icon }: { icon: string | null }) => (
   <div style={{ display: "flex", alignItems: "center", gap: 12, height: 72, padding: "0 32px", background: "#ffffff", borderBottom: "1px solid #e5e7eb", flexShrink: 0 }}>
-    <img src={ICON} width={36} height={36} alt="" style={{ borderRadius: 9 }} />
+    {icon && <img src={icon} width={36} height={36} alt="" style={{ borderRadius: 9 }} />}
     <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -0.3, color: "#111827" }}>Sequences</div>
   </div>
 );
 
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const icon = iconUri();
 
   let svg: string | null = null;
   if (UUID.test(id)) {
@@ -52,7 +58,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
     return new ImageResponse(
       (
         <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", background: BG }}>
-          <TopBar />
+          <TopBar icon={icon} />
           <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center", fontSize: 38, color: "#6b7280" }}>Diagram not found</div>
         </div>
       ),
@@ -81,7 +87,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   return new ImageResponse(
     (
       <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", background: BG }}>
-        <TopBar />
+        <TopBar icon={icon} />
         <div style={{ display: "flex", flex: 1, margin: 40, alignItems: "center", justifyContent: "center", background: "#ffffff", padding: 24, overflow: "hidden", border: "1px solid #e5e7eb", boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={dataUri} width={dw} height={dh} alt="" />
