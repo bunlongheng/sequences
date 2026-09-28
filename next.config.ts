@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   serverExternalPackages: ["@resvg/resvg-js", "sharp"],
   outputFileTracingIncludes: {
-    "/s/[id]/opengraph-image": ["./lib/fonts/**"],
+    "/s/[id]/opengraph-image": ["./lib/fonts/**", "./public/icon-512.png"],
   },
   images: {
     remotePatterns: [{ protocol: "https", hostname: "i.ytimg.com", pathname: "/vi/**" }],
