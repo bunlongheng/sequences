@@ -160,6 +160,12 @@ export function SettingsContent({
     const iconKeys = assignIconKeys(participants.map(p => ({ id: p.id, label: opts.labelOverrides?.[p.id] ?? p.label })), opts.icons);
     const fs = (base: number) => mobile ? Math.round(base * 1.2) : base;
     const ut = UI_THEMES[opts.theme] ?? UI_THEMES.light;
+    // The share card is rendered server-side from the SAVED sequence, so it is
+    // re-fetched every time the share tab opens - a fresh save shows up without
+    // a page reload.
+    const [previewV, setPreviewV] = useState(0);
+    useEffect(() => { if (tab === "share") setPreviewV(Date.now()); }, [tab]);
+    const viewId = viewUrl ? viewUrl.slice(viewUrl.lastIndexOf("/") + 1) : "";
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -267,6 +273,20 @@ export function SettingsContent({
             </>}
 
             {tab === "share" && <>
+                {/* Link preview - the same OG card Slack / iMessage / X unfurl for this link */}
+                {viewId && <div>
+                    <div style={{ fontSize: fs(9), fontWeight: 700, color: ut.sectionLabel, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Link preview</div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={`/s/${viewId}/opengraph-image?v=${previewV}`}
+                        alt="Share card preview"
+                        width={1200} height={630}
+                        style={{ width: "100%", height: "auto", display: "block", borderRadius: 8, border: `1px solid ${ut.divider}`, background: "#16161e" }}
+                        onError={e => { e.currentTarget.style.display = "none"; }}
+                    />
+                    <div style={{ fontSize: fs(10), color: ut.sectionLabel, marginTop: 6, wordBreak: "break-all", lineHeight: 1.4 }}>{viewUrl}</div>
+                </div>}
+
                 {/* QR code → click to copy prod link */}
                 {viewUrl && <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
                     <div
