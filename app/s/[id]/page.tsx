@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import db from "@/lib/db";
 import { parse, buildSvg, DEFAULT_OPTS, DEFAULT_LAYOUT } from "@/lib/svg-renderer";
 import type { Opts, Layout } from "@/lib/svg-renderer";
+import { shareChrome } from "@/lib/share-chrome";
 import SocialFooter from "../../SocialFooter";
 
 export const revalidate = 300;
@@ -28,7 +29,7 @@ function render(row: Row) {
   const layout: Layout = { ...DEFAULT_LAYOUT, ...(row.settings?.layout ?? {}) };
   const diagram = parse(row.code);
   if (!diagram.title && row.title) diagram.title = row.title;
-  return { svg: buildSvg(diagram, opts, layout, row.created_at ?? undefined), title: diagram.title || row.title || "Diagram" };
+  return { svg: buildSvg(diagram, opts, layout, row.created_at ?? undefined), title: diagram.title || row.title || "Diagram", c: shareChrome(opts.theme) };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -53,23 +54,23 @@ export default async function DiagramPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const row = await getDiagram(id);
   if (!row) notFound();
-  const { svg, title } = render(row);
+  const { svg, c } = render(row);
 
   return (
-    <main style={{ minHeight: "100dvh", background: "#eceef2", fontFamily: "system-ui,-apple-system,sans-serif" }}>
+    <main style={{ minHeight: "100dvh", background: c.ground, fontFamily: "system-ui,-apple-system,sans-serif" }}>
       {/* Slim top bar — logo + demo/sign-in, no editing chrome. */}
       <header style={{
         height: 56, display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 20px", background: "#fff", borderBottom: "1px solid #e5e7eb",
+        padding: "0 20px", background: c.bar, borderBottom: `1px solid ${c.barBorder}`,
         position: "sticky", top: 0, zIndex: 10,
       }}>
         <a href="/demo" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
           {/* The app's own mark. This bar used to hand-draw 3 coloured
               rectangles, which is not the logo - the icon is 3 lifelines with
               messages crossing them. */}
-          <Wordmark size={28} />
+          <Wordmark size={28} color={c.barText} />
         </a>
-        <a href={`/svg/${id}`} style={{ fontSize: 13, fontWeight: 600, color: "#4b5563", textDecoration: "none" }}>Download SVG</a>
+        <a href={`/svg/${id}`} style={{ fontSize: 13, fontWeight: 600, color: c.muted, textDecoration: "none" }}>Download SVG</a>
       </header>
 
       {/* Clean, light, full-width diagram — the whole point of the page. */}
@@ -79,7 +80,7 @@ export default async function DiagramPage({ params }: { params: Promise<{ id: st
         <style>{`.dgview svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }`}</style>
         <div
           className="dgview"
-          style={{ background: "#fff", border: "1px solid #e5e7eb", padding: "24px", boxShadow: "0 1px 3px rgba(15,23,42,0.06)", overflow: "hidden" }}
+          style={{ background: c.card, border: `1px solid ${c.cardBorder}`, padding: "24px", boxShadow: "0 1px 3px rgba(15,23,42,0.06)", overflow: "hidden" }}
           dangerouslySetInnerHTML={{ __html: svg }}
         />
         <SocialFooter />

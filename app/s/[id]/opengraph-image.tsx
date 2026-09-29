@@ -5,6 +5,8 @@ import { readFileSync } from "node:fs";
 import db from "@/lib/db";
 import { parse, buildSvg, DEFAULT_OPTS, DEFAULT_LAYOUT } from "@/lib/svg-renderer";
 import type { Opts, Layout } from "@/lib/svg-renderer";
+import { shareChrome } from "@/lib/share-chrome";
+import type { ShareChrome } from "@/lib/share-chrome";
 
 export const runtime = "nodejs";
 
@@ -19,10 +21,9 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-// The same look as the public /s/[id] page the link opens: white top bar
-// with the icon and wordmark, the grey ground, the diagram (title and byline
-// already drawn inside it) in a white card.
-const BG = "#eceef2";
+// The same look as the public /s/[id] page the link opens: top bar with the
+// icon and wordmark, the ground, the diagram (title and byline already drawn
+// inside it) in a card - all in the diagram's own theme.
 // Read per render, not at module load: a missing file on serverless must
 // cost the icon, never the whole card.
 const iconUri = () => {
@@ -30,10 +31,10 @@ const iconUri = () => {
   catch { return null; }
 };
 
-const TopBar = ({ icon }: { icon: string | null }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: 12, height: 72, padding: "0 32px", background: "#ffffff", borderBottom: "1px solid #e5e7eb", flexShrink: 0 }}>
+const TopBar = ({ icon, c }: { icon: string | null; c: ShareChrome }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 12, height: 72, padding: "0 32px", background: c.bar, borderBottom: `1px solid ${c.barBorder}`, flexShrink: 0 }}>
     {icon && <img src={icon} width={36} height={36} alt="" style={{ borderRadius: 9 }} />}
-    <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -0.3, color: "#111827" }}>Sequences</div>
+    <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -0.3, color: c.barText }}>Sequences</div>
   </div>
 );
 
@@ -42,6 +43,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   const icon = iconUri();
 
   let svg: string | null = null;
+  let c = shareChrome("light");
   if (UUID.test(id)) {
     const { rows } = await db.query("SELECT code, settings, title, created_at FROM sequences WHERE id = $1", [id]);
     if (rows.length && rows[0].code?.trim()) {
@@ -51,14 +53,15 @@ export default async function Image({ params }: { params: Promise<{ id: string }
       const diagram = parse(code);
       if (!diagram.title && dbTitle) diagram.title = dbTitle;
       svg = buildSvg(diagram, opts, layout, created_at ?? undefined);
+      c = shareChrome(opts.theme);
     }
   }
 
   if (!svg) {
     return new ImageResponse(
       (
-        <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", background: BG }}>
-          <TopBar icon={icon} />
+        <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", background: c.ground }}>
+          <TopBar icon={icon} c={c} />
           <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center", fontSize: 38, color: "#6b7280" }}>Diagram not found</div>
         </div>
       ),
@@ -86,9 +89,9 @@ export default async function Image({ params }: { params: Promise<{ id: string }
 
   return new ImageResponse(
     (
-      <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", background: BG }}>
-        <TopBar icon={icon} />
-        <div style={{ display: "flex", flex: 1, margin: 40, alignItems: "center", justifyContent: "center", background: "#ffffff", padding: 24, overflow: "hidden", border: "1px solid #e5e7eb", boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}>
+      <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", background: c.ground }}>
+        <TopBar icon={icon} c={c} />
+        <div style={{ display: "flex", flex: 1, margin: 40, alignItems: "center", justifyContent: "center", background: c.card, padding: 24, overflow: "hidden", border: `1px solid ${c.cardBorder}`, boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={dataUri} width={dw} height={dh} alt="" />
         </div>
