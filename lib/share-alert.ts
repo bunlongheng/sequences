@@ -90,10 +90,10 @@ async function logVisit(v: ShareVisit): Promise<void> {
   );
 }
 
-/** The app's own logo, absolute so it renders inside an email as well as a note. */
-function appIconUrl(): string {
-  return `${(process.env.NEXT_PUBLIC_SITE_URL || "https://sequences-bheng.vercel.app").replace(/\/$/, "")}/icon-192.png`;
-}
+/** The app's own logo, absolute so it renders inside an email as well as a note.
+ *  Pinned to the live site on purpose: NEXT_PUBLIC_SITE_URL still carries the
+ *  pre-rename host in some envs, which produced a broken image. */
+const APP_ICON_URL = "https://sequences-bheng.vercel.app/icon-192.png";
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
@@ -113,7 +113,7 @@ function alertBody(v: ShareVisit, viewNumber: number): string {
     `<td style="padding:7px 0;color:#18181b;font-size:14px;font-weight:600;word-break:break-word">${val ? escapeHtml(val) : "<span style=\"color:#a1a1aa;font-weight:400\">unknown</span>"}</td></tr>`;
   return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;max-width:640px;margin:0 auto;padding:8px 0 24px;color:#18181b">
   <div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#a1a1aa;font-weight:700;margin-bottom:6px">Sequences share - ${v.kind === "unlock" ? "passcode unlock" : "link opened"}</div>
-  <h1 style="display:flex;align-items:center;gap:10px;font-size:20px;line-height:1.35;margin:0 0 14px;color:#18181b"><img src="${appIconUrl()}" alt="Sequences" width="28" height="28" style="width:28px;height:28px;border-radius:7px;flex:none"><span>Someone opened "${escapeHtml(v.title)}"</span></h1>
+  <h1 style="display:flex;align-items:center;gap:10px;font-size:20px;line-height:1.35;margin:0 0 14px;color:#18181b"><img src="${APP_ICON_URL}" alt="Sequences" width="28" height="28" style="width:28px;height:28px;border-radius:7px;flex:none"><span>Someone opened "${escapeHtml(v.title)}"</span></h1>
   <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#3f3f46">Someone from <b>${escapeHtml(v.ip)}</b> ${v.kind === "unlock" ? "entered the passcode" : "opened the shared link"} on <b>${when}</b>${country ? ` from <b style="color:#ef4444">${escapeHtml(country)}</b>` : ""}. This is view <b>${viewNumber}</b> of this diagram.</p>
   <table style="border-collapse:collapse;width:100%;max-width:100%;border-top:1px solid #e4e4e7;border-bottom:1px solid #e4e4e7;margin:0 0 18px">
     ${row("Target IP", v.ip)}
