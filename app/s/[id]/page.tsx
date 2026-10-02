@@ -7,6 +7,7 @@ import db from "@/lib/db";
 import { parse, buildSvg, DEFAULT_OPTS, DEFAULT_LAYOUT } from "@/lib/svg-renderer";
 import type { Opts, Layout } from "@/lib/svg-renderer";
 import { shareChrome } from "@/lib/share-chrome";
+import { isBot, notifyShareView, readVisit } from "@/lib/share-alert";
 import SocialFooter from "../../SocialFooter";
 
 export const revalidate = 300;
@@ -54,7 +55,12 @@ export default async function DiagramPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const row = await getDiagram(id);
   if (!row) notFound();
-  const { svg, c } = render(row);
+  const { svg, title, c } = render(row);
+
+  // Every real view tells the owner. Not awaited, so the reader never waits on
+  // it; link-preview crawlers (iMessage, Slack, WhatsApp) are ignored.
+  const h = await headers();
+  if (!isBot(h.get("user-agent"))) void notifyShareView(readVisit(h, id, title));
 
   return (
     <main style={{ minHeight: "100dvh", background: c.ground, fontFamily: "system-ui,-apple-system,sans-serif" }}>
