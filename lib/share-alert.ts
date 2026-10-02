@@ -168,14 +168,14 @@ async function sendEmail(v: ShareVisit, viewNumber: number): Promise<boolean> {
         body: JSON.stringify({
           from: process.env.SHARE_ALERT_FROM || "Sequences <onboarding@resend.dev>",
           to: [to],
-          subject: `Opened: ${v.title} - ${v.ip}`,
+          subject: `Sequences - Opened: ${v.title} - ${v.ip}`,
           html: alertBody(v, viewNumber),
         }),
       })
     : await fetch(`https://formspree.io/f/${process.env.FORMSPREE_FORM || "mbddjovk"}`, {
         method: "POST",
         headers: { Accept: "application/json", "Content-Type": "application/json" },
-        body: JSON.stringify({ email: to, _subject: `Opened: ${v.title} - ${v.ip}`, message: textBody(v, viewNumber) }),
+        body: JSON.stringify({ email: to, _subject: `Sequences - Opened: ${v.title} - ${v.ip}`, message: textBody(v, viewNumber) }),
       });
   return res.ok;
 }
@@ -190,8 +190,8 @@ async function postAlertNote(v: ShareVisit, viewNumber: number): Promise<void> {
   if (!userId) return;
   await db.query(
     `INSERT INTO stickies (user_id, title, content, folder_name, folder_color, is_folder, type, "order", created_by_key, created_by_machine, icon)
-     VALUES ($1, $2, $3, 'Alerts', '#FF3B30', false, 'html', 0, 'share-alert', 'sequences', '__app:sequences')`,
-    [userId, `Opened: ${v.title.replace(/^(Opened:\s*)+/, "")}`, alertBody(v, viewNumber)]
+     VALUES ($1, $2, $3, 'Alerts', '#FF3B30', false, 'html', 0, 'sequences', 'sequences', '__app:sequences')`,
+    [userId, `Sequences - Opened: ${v.title.replace(/^((Sequences - )?Opened:\s*)+/, "")}`, alertBody(v, viewNumber)]
   );
 }
 
