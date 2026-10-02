@@ -101,32 +101,56 @@ describe("notifyShareView", () => {
     expect(body.html).toContain("Springfield");
     expect(body.html).toContain("Massachusetts");
     expect(body.html).toContain('<img src="https://sequences-bheng.vercel.app/icon-192.png" alt="Sequences"');
-    expect(calls("http://localhost:4444")).toHaveLength(0);
+    expect(calls("https://formspree.io")).toHaveLength(0);
     expect(q.mock.calls.some(([sql]) => sql.includes("SET emailed = true"))).toBe(true);
   });
 
-  it("falls back to a Stickies note when no email key is set, without stacking the Opened prefix", async () => {
-    vi.stubEnv("STICKIES_API_KEY", "sk_test");
-    await notifyShareView(visit("Opened: Checkout flow"));
+  it("mails through the keyless Formspree form when no Resend key is set", async () => {
+    vi.stubEnv("OWNER_EMAIL", "owner@example.test");
+    await notifyShareView(visit());
     expect(calls("https://api.resend.com")).toHaveLength(0);
-    const note = calls("http://localhost:4444/api/stickies/ext");
-    expect(note).toHaveLength(1);
-    expect(note[0][1].headers.Authorization).toBe("Bearer sk_test");
-    const body = JSON.parse(note[0][1].body);
-    expect(body).toMatchObject({ type: "html", title: "Opened: Checkout flow", folder: "Alerts", icon: "__app:sequences" });
-    expect(body.content).toContain(`<a href="https://sequences-bheng.vercel.app/s/${SEQ}"`);
-    expect(body.content).toContain("view <b>3</b>");
-    expect(q.mock.calls.some(([sql]) => sql.includes("SET emailed"))).toBe(false);
+    const form = calls("https://formspree.io/f/mbddjovk");
+    expect(form).toHaveLength(1);
+    const body = JSON.parse(form[0][1].body);
+    expect(body.email).toBe("owner@example.test");
+    expect(body._subject).toBe(`Opened: Checkout flow - ${IP}`);
+    expect(body.message).toContain("This is view 3 of this diagram.");
+    expect(body.message).toContain(`Link: https://sequences-bheng.vercel.app/s/${SEQ}`);
+    expect(body.message).toContain("Map: https://www.google.com/maps?q=42.1015,-72.5898");
+    expect(q.mock.calls.some(([sql]) => sql.includes("SET emailed = true"))).toBe(true);
+  });
+
+  it("always inserts a Stickies note for the owner as well, without stacking the Opened prefix", async () => {
+    vi.stubEnv("OWNER_EMAIL", "owner@example.test");
+    vi.stubEnv("OWNER_USER_ID", "731ace87-0000-4000-8000-000000000000");
+    await notifyShareView(visit("Opened: Checkout flow"));
+    expect(calls("https://formspree.io")).toHaveLength(1);
+    const note = q.mock.calls.find(([sql]) => sql.includes("INSERT INTO stickies"));
+    expect(note).toBeDefined();
+    const [sql, params] = note!;
+    expect(sql).toContain("'Alerts'");
+    expect(sql).toContain("'__app:sequences'");
+    expect(params[0]).toBe("731ace87-0000-4000-8000-000000000000");
+    expect(params[1]).toBe("Opened: Checkout flow");
+    expect(params[2]).toContain(`<a href="https://sequences-bheng.vercel.app/s/${SEQ}"`);
+    expect(params[2]).toContain("view <b>3</b>");
+  });
+
+  it("stays quiet on both channels when neither owner email nor owner id is set", async () => {
+    await notifyShareView(visit());
+    expect(calls("https://api.resend.com")).toHaveLength(0);
+    expect(calls("https://formspree.io")).toHaveLength(0);
+    expect(q.mock.calls.some(([sql]) => sql.includes("INSERT INTO stickies"))).toBe(false);
   });
 
   it("escapes the title and skips the geo lookup for private addresses", async () => {
-    vi.stubEnv("STICKIES_API_KEY", "sk_test");
+    vi.stubEnv("OWNER_USER_ID", "731ace87-0000-4000-8000-000000000000");
     const v = readVisit(headers({ "x-real-ip": "192.168.1.9", "user-agent": "Safari" }), SEQ, `<b>"Q&A"</b>`);
     await notifyShareView(v);
     expect(calls("https://ipinfo.io")).toHaveLength(0);
-    const body = JSON.parse(calls("http://localhost:4444")[0][1].body);
-    expect(body.content).toContain("&lt;b&gt;&quot;Q&amp;A&quot;&lt;/b&gt;");
-    expect(body.content).not.toContain("static-maps");
+    const [, params] = q.mock.calls.find(([sql]) => sql.includes("INSERT INTO stickies"))!;
+    expect(params[2]).toContain("&lt;b&gt;&quot;Q&amp;A&quot;&lt;/b&gt;");
+    expect(params[2]).not.toContain("static-maps");
   });
 
   it("never throws when the database is down", async () => {

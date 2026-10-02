@@ -1,7 +1,7 @@
 // Who opened a public share link (/s/<id>). Fires once per real view: every
-// view is written to sequence_share_view_log (so nothing is lost before an
-// email provider is configured) and emailed to OWNER_EMAIL when RESEND_API_KEY
-// is set, otherwise dropped into Stickies as a note.
+// view is written to sequence_share_view_log (so nothing is lost if a channel
+// is down), emailed to OWNER_EMAIL (Resend when RESEND_API_KEY is set, else the
+// keyless Formspree form), and dropped into the owner's Stickies as a note.
 //
 // Never throws and never blocks the response - a failed alert must not stop a
 // reader from seeing the diagram. Modeled on the Stickies share alert.
@@ -134,41 +134,62 @@ function alertBody(v: ShareVisit, viewNumber: number): string {
 </div>`;
 }
 
+/** Plain-text twin of alertBody for the Formspree route, which cannot carry HTML. */
+function textBody(v: ShareVisit, viewNumber: number): string {
+  const g = v.geo;
+  const when = v.at.toLocaleString("en-US", { timeZone: "America/New_York", dateStyle: "medium", timeStyle: "short" }) + " ET";
+  const [lat, lon] = (g?.loc || "").split(",");
+  const rows: [string, string | null | undefined][] = [
+    ["Link", v.url], ["Target IP", v.ip], ["Hostname", g?.hostname], ["City", g?.city || v.city],
+    ["Region", g?.region], ["Country", g?.country || v.country], ["Coordinates", g?.loc], ["Org", g?.org],
+    ["Postal", g?.postal], ["Timezone", g?.timezone], ["Referrer", v.referer],
+    ["Map", lat && lon ? `https://www.google.com/maps?q=${lat},${lon}` : null],
+    ["More detail", `https://ipinfo.io/${v.ip}`], ["User agent", v.userAgent],
+  ];
+  return [
+    `Someone from ${v.ip} ${v.kind === "unlock" ? "entered the passcode for" : "opened"} "${v.title}" on ${when}. This is view ${viewNumber} of this diagram.`,
+    "",
+    ...rows.filter(([, val]) => val).map(([k, val]) => `${k}: ${val}`),
+  ].join("\n");
+}
+
+/** Resend when a key is set, otherwise the keyless Formspree form the Stickies alert mails through. */
 async function sendEmail(v: ShareVisit, viewNumber: number): Promise<boolean> {
-  const key = process.env.RESEND_API_KEY;
   const to = process.env.OWNER_EMAIL;
-  if (!key || !to) return false;
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: process.env.SHARE_ALERT_FROM || "Sequences <onboarding@resend.dev>",
-      to: [to],
-      subject: `Opened: ${v.title} - ${v.ip}`,
-      html: alertBody(v, viewNumber),
-    }),
-  });
+  if (!to) return false;
+  const key = process.env.RESEND_API_KEY;
+  const res = key
+    ? await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: process.env.SHARE_ALERT_FROM || "Sequences <onboarding@resend.dev>",
+          to: [to],
+          subject: `Opened: ${v.title} - ${v.ip}`,
+          html: alertBody(v, viewNumber),
+        }),
+      })
+    : await fetch(`https://formspree.io/f/${process.env.FORMSPREE_FORM || "mbddjovk"}`, {
+        method: "POST",
+        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify({ email: to, _subject: `Opened: ${v.title} - ${v.ip}`, message: textBody(v, viewNumber) }),
+      });
   return res.ok;
 }
 
 /**
- * No email provider configured: post the same HTML as a Stickies note instead,
- * so a visit is never silent. Shows up on the phone like any other note.
+ * The same alert as a note in the owner's Stickies Alerts folder. Stickies
+ * shares this database, so the note is inserted directly: Vercel cannot reach
+ * the Stickies API on localhost, and no API key is needed.
  */
 async function postAlertNote(v: ShareVisit, viewNumber: number): Promise<void> {
-  const key = process.env.STICKIES_API_KEY;
-  if (!key) return;
-  await fetch("http://localhost:4444/api/stickies/ext", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      type: "html",
-      title: `Opened: ${v.title.replace(/^(Opened:\s*)+/, "")}`,
-      content: alertBody(v, viewNumber),
-      folder: "Alerts",
-      icon: "__app:sequences",
-    }),
-  });
+  const userId = process.env.OWNER_USER_ID;
+  if (!userId) return;
+  await db.query(
+    `INSERT INTO stickies (user_id, title, content, folder_name, folder_color, is_folder, type, "order", created_by_key, created_by_machine, icon)
+     VALUES ($1, $2, $3, 'Alerts', '#FF3B30', false, 'html', 0, 'share-alert', 'sequences', '__app:sequences')`,
+    [userId, `Opened: ${v.title.replace(/^(Opened:\s*)+/, "")}`, alertBody(v, viewNumber)]
+  );
 }
 
 /** Fire-and-forget. Call without awaiting; it swallows its own failures. */
@@ -184,9 +205,8 @@ export async function notifyShareView(v: ShareVisit): Promise<void> {
            SELECT id FROM sequence_share_view_log WHERE sequence_id = $1 ORDER BY created_at DESC LIMIT 1)`,
         [v.sequenceId]
       );
-    } else {
-      await postAlertNote(v, viewNumber);
     }
+    await postAlertNote(v, viewNumber);
   } catch (e) {
     console.error("[share-alert] failed", e instanceof Error ? e.message : String(e));
   }
