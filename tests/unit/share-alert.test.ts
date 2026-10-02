@@ -114,9 +114,12 @@ describe("notifyShareView", () => {
     const body = JSON.parse(form[0][1].body);
     expect(body.email).toBe("owner@example.test");
     expect(body._subject).toBe(`Opened: Checkout flow - ${IP}`);
-    expect(body.message).toContain("This is view 3 of this diagram.");
-    expect(body.message).toContain(`Link: https://sequences-bheng.vercel.app/s/${SEQ}`);
-    expect(body.message).toContain("Map: https://www.google.com/maps?q=42.1015,-72.5898");
+    expect(body.message).toContain('"Checkout flow" was opened on');
+    expect(body.message).toContain("(view 3).");
+    expect(body.message).toContain(`Open: sequences-bheng.vercel.app/s/${SEQ}`);
+    expect(body.message).toContain("Where: Springfield, Massachusetts, US");
+    // Formspree silently drops messages carrying full links, so none may appear.
+    expect(body.message).not.toMatch(/https?:\/\//);
     expect(q.mock.calls.some(([sql]) => sql.includes("SET emailed = true"))).toBe(true);
   });
 

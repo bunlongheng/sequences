@@ -134,21 +134,24 @@ function alertBody(v: ShareVisit, viewNumber: number): string {
 </div>`;
 }
 
-/** Plain-text twin of alertBody for the Formspree route, which cannot carry HTML. */
+/** Plain-text twin of alertBody for the Formspree route, which cannot carry
+ *  HTML. Kept short and free of full URLs on purpose: Formspree answers 200 to
+ *  a message with several https:// links and then drops it as spam, which is
+ *  how the first production alerts were lost. A bare host gets through. */
 function textBody(v: ShareVisit, viewNumber: number): string {
   const g = v.geo;
   const when = v.at.toLocaleString("en-US", { timeZone: "America/New_York", dateStyle: "medium", timeStyle: "short" }) + " ET";
-  const [lat, lon] = (g?.loc || "").split(",");
+  const where = [g?.city || v.city, g?.region, g?.country || v.country].filter(Boolean).join(", ");
   const rows: [string, string | null | undefined][] = [
-    ["Link", v.url], ["Target IP", v.ip], ["Hostname", g?.hostname], ["City", g?.city || v.city],
-    ["Region", g?.region], ["Country", g?.country || v.country], ["Coordinates", g?.loc], ["Org", g?.org],
-    ["Postal", g?.postal], ["Timezone", g?.timezone], ["Referrer", v.referer],
-    ["Map", lat && lon ? `https://www.google.com/maps?q=${lat},${lon}` : null],
-    ["More detail", `https://ipinfo.io/${v.ip}`], ["User agent", v.userAgent],
+    ["Open", v.url?.replace(/^https?:\/\//, "")],
+    ["IP", v.ip],
+    ["Where", where || null],
+    ["Org", g?.org],
+    ["From", v.referer?.replace(/^https?:\/\//, "").replace(/\/.*$/, "")],
+    ["Browser", v.userAgent],
   ];
   return [
-    `Someone from ${v.ip} ${v.kind === "unlock" ? "entered the passcode for" : "opened"} "${v.title}" on ${when}. This is view ${viewNumber} of this diagram.`,
-    "",
+    `"${v.title}" was ${v.kind === "unlock" ? "unlocked" : "opened"} on ${when} (view ${viewNumber}).`,
     ...rows.filter(([, val]) => val).map(([k, val]) => `${k}: ${val}`),
   ].join("\n");
 }
