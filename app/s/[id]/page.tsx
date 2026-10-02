@@ -65,7 +65,8 @@ export default async function DiagramPage({ params }: { params: Promise<{ id: st
   // Slack, WhatsApp) are ignored.
   const h = await headers();
   if (!isBot(h.get("user-agent"))) {
-    const visit = readVisit(h, id, title);
+    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "sequences-bheng.vercel.app";
+    const visit = readVisit(h, { id, title, link: `${h.get("x-forwarded-proto") ?? "https"}://${host}/s/${id}` });
     after(() => notifyShareView(visit));
   }
 
