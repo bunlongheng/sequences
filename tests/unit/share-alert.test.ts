@@ -137,6 +137,8 @@ describe("notifyShareView", () => {
   });
 
   it("stays quiet on both channels when neither owner email nor owner id is set", async () => {
+    vi.stubEnv("OWNER_EMAIL", "");
+    vi.stubEnv("OWNER_USER_ID", "");
     await notifyShareView(visit());
     expect(calls("https://api.resend.com")).toHaveLength(0);
     expect(calls("https://formspree.io")).toHaveLength(0);
