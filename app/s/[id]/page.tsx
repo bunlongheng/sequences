@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { cache } from "react";
 import { headers } from "next/headers";
+import { after } from "next/server";
 import Wordmark from "@/app/Wordmark";
 import { notFound } from "next/navigation";
 import db from "@/lib/db";
@@ -57,10 +58,16 @@ export default async function DiagramPage({ params }: { params: Promise<{ id: st
   if (!row) notFound();
   const { svg, title, c } = render(row);
 
-  // Every real view tells the owner. Not awaited, so the reader never waits on
-  // it; link-preview crawlers (iMessage, Slack, WhatsApp) are ignored.
+  // Every real view tells the owner. Runs after the response is sent, so the
+  // reader never waits on it, and after() keeps the Vercel function alive
+  // until it finishes: a bare unawaited promise was frozen with the function
+  // and the email and note never went out. Link-preview crawlers (iMessage,
+  // Slack, WhatsApp) are ignored.
   const h = await headers();
-  if (!isBot(h.get("user-agent"))) void notifyShareView(readVisit(h, id, title));
+  if (!isBot(h.get("user-agent"))) {
+    const visit = readVisit(h, id, title);
+    after(() => notifyShareView(visit));
+  }
 
   return (
     <main style={{ minHeight: "100dvh", background: c.ground, fontFamily: "system-ui,-apple-system,sans-serif" }}>
