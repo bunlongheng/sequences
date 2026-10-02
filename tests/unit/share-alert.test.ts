@@ -95,7 +95,7 @@ describe("notifyShareView", () => {
     expect(resend).toHaveLength(1);
     const body = JSON.parse(resend[0][1].body);
     expect(body.to).toEqual(["owner@example.test"]);
-    expect(body.subject).toBe(`Opened: Checkout flow - ${IP}`);
+    expect(body.subject).toBe(`Sequences - Opened: Checkout flow - ${IP}`);
     expect(body.html).toContain("view <b>3</b>");
     expect(body.html).toContain("https://static-maps.yandex.ru/1.x/?lang=en_US&ll=-72.5898,42.1015");
     expect(body.html).toContain("Springfield");
@@ -113,7 +113,7 @@ describe("notifyShareView", () => {
     expect(form).toHaveLength(1);
     const body = JSON.parse(form[0][1].body);
     expect(body.email).toBe("owner@example.test");
-    expect(body._subject).toBe(`Opened: Checkout flow - ${IP}`);
+    expect(body._subject).toBe(`Sequences - Opened: Checkout flow - ${IP}`);
     expect(body.message).toContain('"Checkout flow" was opened on');
     expect(body.message).toContain("(view 3).");
     expect(body.message).toContain(`Open: sequences-bheng.vercel.app/s/${SEQ}`);
@@ -126,7 +126,7 @@ describe("notifyShareView", () => {
   it("always inserts a Stickies note for the owner as well, without stacking the Opened prefix", async () => {
     vi.stubEnv("OWNER_EMAIL", "owner@example.test");
     vi.stubEnv("OWNER_USER_ID", "731ace87-0000-4000-8000-000000000000");
-    await notifyShareView(visit("Opened: Checkout flow"));
+    await notifyShareView(visit("Sequences - Opened: Checkout flow"));
     expect(calls("https://formspree.io")).toHaveLength(1);
     const note = q.mock.calls.find(([sql]) => sql.includes("INSERT INTO stickies"));
     expect(note).toBeDefined();
@@ -134,7 +134,7 @@ describe("notifyShareView", () => {
     expect(sql).toContain("'Alerts'");
     expect(sql).toContain("'__app:sequences'");
     expect(params[0]).toBe("731ace87-0000-4000-8000-000000000000");
-    expect(params[1]).toBe("Opened: Checkout flow");
+    expect(params[1]).toBe("Sequences - Opened: Checkout flow");
     expect(params[2]).toContain(`<a href="https://sequences-bheng.vercel.app/s/${SEQ}"`);
     expect(params[2]).toContain("view <b>3</b>");
   });
