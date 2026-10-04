@@ -5,14 +5,12 @@
 -- the key that matched, none of which say which skill ran - so the 30 audit
 -- renders filed on 2026-09-30 were only identifiable by their
 -- "<repo> - File Layers" title suffix, which is a guess, not a marker.
+--
+-- No backfill: those 30 rows were deleted on 2026-10-04 (74 across the 3
+-- diagram apps) and the owner left them deleted. Their rows in
+-- sequence_api_requests survive, since that table has no FK, so the history of
+-- the run is intact. There is one database behind dev and prod alike, so a
+-- tagging UPDATE here would match nothing anywhere - it would be dead SQL.
+-- Restorable from the row dump if that call is ever reversed:
+--   .../repo-audit-rows/sequences.json  (30 rows, every column, code included)
 ALTER TABLE sequence_api_requests ADD COLUMN IF NOT EXISTS source TEXT;
-
--- Backfill: tag any audit render still sitting in the library so it drops out
--- of the list, which filters on this tag. Idempotent, and already a no-op on
--- prod - the 30 rows were removed from the sequences table before this ran, and
--- their rows in sequence_api_requests (no FK) still hold the history. Kept for
--- local and preview copies of the DB that still carry them.
-UPDATE sequences
-   SET tags = (SELECT array_agg(DISTINCT t) FROM unnest(COALESCE(tags, '{}'::text[]) || ARRAY['repo-audit']) AS t)
- WHERE title ~ ' - File Layers$'
-   AND NOT (COALESCE(tags, '{}'::text[]) @> ARRAY['repo-audit']::text[]);
