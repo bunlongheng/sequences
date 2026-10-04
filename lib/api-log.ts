@@ -68,16 +68,20 @@ export async function logApiRequest(entry: ApiOrigin & {
   sequenceId?: string | null;
   title?: string | null;
   bytes?: number | null;
+  // The calling skill's own name, from the request body. A render-only call
+  // stores no row, so this is the only record that it happened.
+  source?: string | null;
 }): Promise<void> {
   try {
     await db.query(
       `INSERT INTO sequence_api_requests
-         (route, method, status, sequence_id, key_label, ip, country, city, user_agent, referer, origin, title, bytes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+         (route, method, status, sequence_id, key_label, ip, country, city, user_agent, referer, origin, title, bytes, source)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
       [
         entry.route, entry.method ?? "POST", entry.status, entry.sequenceId ?? null,
         entry.keyLabel, entry.ip, entry.country, entry.city, entry.userAgent,
         entry.referer, entry.origin, entry.title ?? null, entry.bytes ?? null,
+        entry.source ?? null,
       ]
     );
   } catch (err: unknown) {

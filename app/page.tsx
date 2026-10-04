@@ -1,6 +1,7 @@
 import db from "@/lib/db";
 import { auth } from "@/auth";
 import { resolveOwnerIdServer } from "@/lib/auth-owner";
+import { listSequences } from "@/lib/sequence-list";
 import SequencesShell from "./SequencesShell";
 import SequenceEditor from "./SequenceEditor";
 import LoginLanding from "./LoginLanding";
@@ -24,15 +25,9 @@ export default async function Home({
   if (!uid) return <LoginLanding />;
 
   // Owner: every diagram (public + private), full editor.
-  const [session, result] = await Promise.all([
-    auth(),
-    db.query(
-      "SELECT id, title, slug, sequence_type, created_at, updated_at, code, tags, locked, settings, settings->>'youtubeId' AS youtube_id FROM sequences WHERE user_id = $1 ORDER BY updated_at DESC",
-      [uid]
-    ),
-  ]);
+  const [session, rows] = await Promise.all([auth(), listSequences(uid)]);
   // Match NextResponse.json: Date columns serialize to ISO strings for the client.
-  const sequences: Sequence[] = JSON.parse(JSON.stringify(result.rows));
+  const sequences: Sequence[] = JSON.parse(JSON.stringify(rows));
   // The local dev bypass has no session, so fall back to the owner row the
   // NextAuth adapter already stores (name + Google profile photo).
   let profile = {

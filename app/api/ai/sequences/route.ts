@@ -5,6 +5,7 @@ import { uniqueSequenceSlug } from "@/lib/slugs";
 import { embedTitleInCode } from "@/lib/sequence-code";
 import { parse, buildSvg, DEFAULT_OPTS, DEFAULT_LAYOUT } from "@/lib/svg-renderer";
 import { requestOrigin, logApiRequest } from "@/lib/api-log";
+import { isAuditSource, normalizeSource } from "@/lib/sequence-source";
 import type { Opts, Layout } from "@/lib/svg-renderer";
 
 /**
@@ -25,7 +26,9 @@ import type { Opts, Layout } from "@/lib/svg-renderer";
  *     "title":       "My Diagram",          // required
  *     "code":        "sequenceDiagram\n…",  // required
  *     "sequenceType": "sequence",            // optional, defaults to "sequence"
- *     "return":      "svg"                  // optional (or "format": "svg", or ?format=svg)
+ *     "return":      "svg",                 // optional (or "format": "svg", or ?format=svg)
+ *     "source":      "repo-audit",          // optional, max 64 chars - see below
+ *     "store":       true                   // optional boolean - see below
  *   }
  *
  * Response 201:
@@ -39,12 +42,24 @@ import type { Opts, Layout } from "@/lib/svg-renderer";
  * includes "svg": the inline self-contained SVG markup (script-free, safe for
  * Confluence/GitHub/docs). If that render fails, the create still succeeds and
  * "svg_error" carries the message instead of "svg".
+ *
+ * source / store (render-only, never stored):
+ *   An audit source ("repo-audit", any *-audit skill), or `store: false`, means
+ *   the caller only wants the picture for a report - not a row in the
+ *   library. All validation above still
+ *   runs, but nothing is inserted; the diagram is parsed and rendered the same
+ *   way the ?format=svg branch does, and the response is 200:
+ *     { "stored": false, "source": "repo-audit", "svg": "<svg…", "note": "…" }
+ *   There is no id, url, or canvas - embed the svg directly. If the render
+ *   throws, the response is 500 { "error": "SVG render failed", "detail": … }
+ *   since there is no row to fall back on. The caller is told apart by what it
+ *   says it is (the `source` field), never by its title.
  */
 export async function POST(req: NextRequest) {
   // Every programmatic call is logged with its provenance - authorized or not -
   // so traffic can be attributed to a caller and throttled later if one runs
   // away. The log write never changes the response.
-  const ctx: CreateCtx = { sequenceId: null, title: null };
+  const ctx: CreateCtx = { sequenceId: null, title: null, source: null };
   let res: NextResponse;
   try {
     res = await postHandler(req, ctx);
@@ -59,13 +74,14 @@ export async function POST(req: NextRequest) {
     status: res.status,
     sequenceId: ctx.sequenceId,
     title: ctx.title,
+    source: ctx.source,
   });
   return res;
 }
 
 // Carries the created row back out of postHandler for the audit log without
 // rewriting its dozen early returns.
-type CreateCtx = { sequenceId: string | null; title: string | null };
+type CreateCtx = { sequenceId: string | null; title: string | null; source: string | null };
 
 async function postHandler(req: NextRequest, ctx: CreateCtx) {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -77,7 +93,7 @@ async function postHandler(req: NextRequest, ctx: CreateCtx) {
   }
 
   // ── Body ──────────────────────────────────────────────────────────────────
-  let body: { title?: string; code?: string; sequenceType?: string; format?: string; return?: string };
+  let body: { title?: string; code?: string; sequenceType?: string; format?: string; return?: string; source?: string; store?: boolean };
   try {
     body = await req.json();
   } catch {
@@ -102,6 +118,16 @@ async function postHandler(req: NextRequest, ctx: CreateCtx) {
   }
 
   const { title, code, sequenceType = "sequence" } = body;
+
+  // A repo audit wants a picture for its report, not a row in the library
+  // (owner rule 2026-10-04). It names itself with `source`, so a caller is told
+  // apart by what it says it is rather than by a guess at its title, and any
+  // *-audit source - plus anyone passing store:false - is answered with SVG and
+  // stores nothing. Set before the validation returns below so a rejected call
+  // is attributed in the request log too.
+  const source = normalizeSource(body.source);
+  const renderOnly = body.store === false || isAuditSource(source);
+  ctx.source = source;
 
   // ── ONLY sequence diagrams are supported ──────────────────────────────────
   if (sequenceType && sequenceType !== "sequence") {
@@ -163,13 +189,6 @@ async function postHandler(req: NextRequest, ctx: CreateCtx) {
     return NextResponse.json({ error: "OWNER_USER_ID not configured" }, { status: 500 });
   }
 
-  // ── Unique slug ───────────────────────────────────────────────────────────
-  const slug = await uniqueSequenceSlug(ownerUserId, title);
-
-  // ── Ensure title is embedded in the code ────────────────────────────────
-  const finalCode = embedTitleInCode(code, title);
-
-  // ── Insert ────────────────────────────────────────────────────────────────
   // vPad: 50 gives breathing room between pills so API-rendered SVGs never
   // overlap, regardless of message-text or pill heights.
   const settings = {
@@ -182,9 +201,42 @@ async function postHandler(req: NextRequest, ctx: CreateCtx) {
     },
   };
 
+  // ── Ensure title is embedded in the code ────────────────────────────────
+  const finalCode = embedTitleInCode(code, title);
+
+  // The same render the /svg/<id> route performs, script-free (interactive:
+  // false) so the markup survives Confluence/GitHub/docs. Both the render-only
+  // branch and the ?format=svg branch below go through here.
+  const render = () => {
+    const opts: Opts = { ...DEFAULT_OPTS, ...settings.opts };
+    const layout: Layout = { ...DEFAULT_LAYOUT, ...settings.layout };
+    const parsed = parse(finalCode);
+    if (!parsed.title) parsed.title = title.trim();
+    return buildSvg(parsed, opts, layout, new Date(), { interactive: false });
+  };
+
+  ctx.title = title.trim();
+
+  if (renderOnly) {
+    try {
+      return NextResponse.json({
+        stored: false,
+        source: source ?? "render-only",
+        svg: render(),
+        note: "Nothing was stored. Embed the svg where the report lives; there is no id, url or canvas.",
+      }, { status: 200 });
+    } catch (err: unknown) {
+      return NextResponse.json({ error: "SVG render failed", detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
+    }
+  }
+
+  // ── Unique slug ───────────────────────────────────────────────────────────
+  const slug = await uniqueSequenceSlug(ownerUserId, title);
+
+  // ── Insert ────────────────────────────────────────────────────────────────
   const { rows } = await db.query(
     "INSERT INTO sequences (user_id, title, slug, code, sequence_type, tags, settings) VALUES ($1, $2, $3, $4, $5, $6::text[], $7) RETURNING *",
-    [ownerUserId, title.trim(), slug, finalCode, sequenceType, ["API"], JSON.stringify(settings)]
+    [ownerUserId, title.trim(), slug, finalCode, sequenceType, ["API"], JSON.stringify(source ? { ...settings, source } : settings)]
   );
 
   if (rows.length === 0) return NextResponse.json({ error: "Insert failed" }, { status: 500 });
@@ -200,17 +252,12 @@ async function postHandler(req: NextRequest, ctx: CreateCtx) {
   };
 
   // ── Optional inline SVG (?format=svg, "return": "svg", or "format": "svg") ─
-  // Same renderer as /svg/<id>, but script-free (interactive: false) so the
-  // markup survives Confluence/GitHub. A render failure NEVER fails the create:
-  // the 201 still returns with svg_error instead of svg.
+  // A render failure NEVER fails the create: the 201 still returns with
+  // svg_error instead of svg.
   const wantsSvg = req.nextUrl.searchParams.get("format") === "svg" || body.return === "svg" || body.format === "svg";
   if (wantsSvg) {
     try {
-      const opts: Opts = { ...DEFAULT_OPTS, ...settings.opts };
-      const layout: Layout = { ...DEFAULT_LAYOUT, ...settings.layout };
-      const parsed = parse(finalCode);
-      if (!parsed.title) parsed.title = title.trim();
-      response.svg = buildSvg(parsed, opts, layout, diagram.created_at, { interactive: false });
+      response.svg = render();
     } catch (renderErr: unknown) {
       response.svg_error = renderErr instanceof Error ? renderErr.message : String(renderErr);
     }
