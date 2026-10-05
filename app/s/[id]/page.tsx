@@ -31,8 +31,18 @@ function render(row: Row) {
   const layout: Layout = { ...DEFAULT_LAYOUT, ...(row.settings?.layout ?? {}) };
   const diagram = parse(row.code);
   if (!diagram.title && row.title) diagram.title = row.title;
-  return { svg: buildSvg(diagram, opts, layout, row.created_at ?? undefined), title: diagram.title || row.title || "Diagram", c: shareChrome(opts.theme) };
+  // The paper draws the title and byline itself, top left, so the SVG carries
+  // the drawing alone (titleBlock: false), its columns pulled in toward a
+  // Letter page's proportions (fitLetter) so it fills the paper, not a strip.
+  const when = row.created_at ? new Date(row.created_at) : new Date();
+  const byline = `${when.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · ${when.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
+  return { svg: buildSvg(diagram, opts, layout, when, { titleBlock: false, fitLetter: true }), title: diagram.title || row.title || "Diagram", byline, c: shareChrome(opts.theme) };
 }
+
+// The gutter between the ground's edge and the paper, on all 4 sides. 20 is the
+// header's own gutter, so the paper's edges line up with the wordmark on the
+// left and the action pill on the right.
+const GUTTER = 20;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -56,7 +66,7 @@ export default async function DiagramPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const row = await getDiagram(id);
   if (!row) notFound();
-  const { svg, title, c } = render(row);
+  const { svg, title, byline, c } = render(row);
 
   // Every real view tells the owner. Runs after the response is sent, so the
   // reader never waits on it, and after() keeps the Vercel function alive
@@ -71,7 +81,7 @@ export default async function DiagramPage({ params }: { params: Promise<{ id: st
   }
 
   return (
-    <main style={{ minHeight: "100dvh", background: c.ground, fontFamily: "system-ui,-apple-system,sans-serif" }}>
+    <main style={{ height: "100dvh", display: "flex", flexDirection: "column", overflow: "hidden", background: c.ground, fontFamily: "system-ui,-apple-system,sans-serif" }}>
       {/* Slim top bar — logo + demo/sign-in, no editing chrome. */}
       <header style={{
         height: 56, display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -99,16 +109,26 @@ export default async function DiagramPage({ params }: { params: Promise<{ id: st
         </div>
       </header>
 
-      {/* Clean, light, full-width diagram — the whole point of the page. */}
-      <div style={{ maxWidth: 1240, margin: "0 auto", padding: "28px 20px 64px" }}>
-        {/* auto-fit: the SVG has a viewBox, so max-width:100% + height:auto scales
-            the whole diagram to fit the card on load — nothing chopped off. */}
-        <style>{`.dgview svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }`}</style>
-        <div
-          className="dgview"
-          style={{ background: c.card, border: `1px solid ${c.cardBorder}`, padding: "24px", boxShadow: "0 1px 3px rgba(15,23,42,0.06)", overflow: "hidden" }}
-          dangerouslySetInnerHTML={{ __html: svg }}
-        />
+      {/* The paper: 1 white sheet that fills the whole ground between the header
+          and the footer, with the same GUTTER on all 4 sides, so nothing on the
+          page scrolls. The bottom gutter is the footer's own 20px top margin.
+          Title and byline sit top left on the paper, like a figure caption; only
+          the drawing is centered in the space that remains, shrunk to fit when
+          it is bigger and shown at its natural size when it is smaller, so a
+          2-step diagram is not blown up to the size of the window. */}
+      <div style={{ flex: 1, minHeight: 0, padding: `${GUTTER}px ${GUTTER}px 0` }}>
+        <style>{`.dgview { display: flex; align-items: center; justify-content: center; } .dgview svg { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; }`}</style>
+        <div style={{ height: "100%", display: "flex", flexDirection: "column", gap: 12, padding: 28, background: c.card, border: `1px solid ${c.cardBorder}`, boxShadow: "0 1px 3px rgba(15,23,42,0.06)", overflow: "hidden" }}>
+          <div style={{ fontFamily: "var(--font-roboto), system-ui, sans-serif", flexShrink: 0 }}>
+            <h1 style={{ margin: 0, fontSize: 24, lineHeight: 1.2, fontWeight: 700, color: c.barText }}>{title}</h1>
+            <div style={{ marginTop: 6, fontSize: 11, color: c.muted }}>
+              <span style={{ fontWeight: 700 }}>BH</span><span style={{ opacity: 0.5 }}> | </span>{byline}
+            </div>
+          </div>
+          <div className="dgview" style={{ flex: 1, minHeight: 0 }} dangerouslySetInnerHTML={{ __html: svg }} />
+        </div>
+      </div>
+      <div style={{ flexShrink: 0, padding: `0 ${GUTTER}px 12px` }}>
         <SocialFooter />
       </div>
     </main>

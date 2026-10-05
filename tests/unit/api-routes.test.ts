@@ -623,6 +623,92 @@ describe("POST /api/ai/sequences", () => {
     );
     vi.unstubAllEnvs();
   });
+
+  // ── Render-only: an audit gets the picture, the library gets nothing ──────
+  it("returns the svg and stores nothing when store:false", async () => {
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
+    vi.resetModules();
+    mockOwnerId.mockReturnValue("owner-uuid");
+    q.mockResolvedValue({ rows: [{ id: "should-not-happen" }], rowCount: 1 });
+
+    const { POST } = await import("@/app/api/ai/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${SECRET}` },
+      body: JSON.stringify({ title: "My Flow", code: "sequenceDiagram\nA->>B: hi", store: false }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.stored).toBe(false);
+    expect(body.svg).toContain("<svg");
+    expect(body.svg).not.toContain("<script");
+    // No row, so no id, url or canvas to hand back.
+    expect(body.id).toBeUndefined();
+    expect(body.url).toBeUndefined();
+    expect(q.mock.calls.some(([sql]) => String(sql).includes("INSERT INTO sequences"))).toBe(false);
+    vi.unstubAllEnvs();
+  });
+
+  it("stores nothing for an audit source even when store is not passed", async () => {
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
+    vi.resetModules();
+    mockOwnerId.mockReturnValue("owner-uuid");
+    q.mockResolvedValue({ rows: [{ id: "should-not-happen" }], rowCount: 1 });
+
+    const { POST } = await import("@/app/api/ai/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${SECRET}` },
+      // The 2026-09-30 shape that filed 30 rows: an audit layer table posted as
+      // a sequence. Declaring the source is now enough to keep it out.
+      body: JSON.stringify({ title: "bc-poc - File Layers", code: "sequenceDiagram\nA->>B: hi", source: "repo-audit" }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ stored: false, source: "repo-audit" });
+    expect(q.mock.calls.some(([sql]) => String(sql).includes("INSERT INTO sequences"))).toBe(false);
+    vi.unstubAllEnvs();
+  });
+
+  it("logs the source of a render-only call, the only trace it leaves", async () => {
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
+    vi.resetModules();
+    mockOwnerId.mockReturnValue("owner-uuid");
+    q.mockResolvedValue({ rows: [], rowCount: 1 });
+
+    const { POST } = await import("@/app/api/ai/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${SECRET}` },
+      body: JSON.stringify({ title: "My Flow", code: "sequenceDiagram\nA->>B: hi", source: "zeta-repo-audit" }),
+    });
+    await POST(req);
+    const logCall = q.mock.calls.find(([sql]) => String(sql).includes("sequence_api_requests"));
+    expect(logCall).toBeDefined();
+    expect(logCall[1]).toContain("zeta-repo-audit");
+    // sequence_id stays null: there is no row to point at.
+    expect(logCall[1][3]).toBeNull();
+    vi.unstubAllEnvs();
+  });
+
+  it("records the source on a stored row so its origin is a fact, not a guess", async () => {
+    vi.stubEnv("SEQUENCES_API_SECRET", SECRET);
+    vi.resetModules();
+    mockOwnerId.mockReturnValue("owner-uuid");
+    q.mockResolvedValue({ rows: [{ id: "d-api-5" }], rowCount: 1 });
+
+    const { POST } = await import("@/app/api/ai/sequences/route");
+    const req = new NextRequest("http://localhost:3002/api/ai/sequences", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${SECRET}` },
+      body: JSON.stringify({ title: "My Flow", code: "sequenceDiagram\nA->>B: hi", source: "create-sequence" }),
+    });
+    expect((await POST(req)).status).toBe(201);
+    const insert = q.mock.calls.find(([sql]) => String(sql).includes("INSERT INTO sequences"));
+    expect(JSON.parse(insert[1][6]).source).toBe("create-sequence");
+    vi.unstubAllEnvs();
+  });
 });
 
 // ════════════════════════════════════════════════════════════════════════════

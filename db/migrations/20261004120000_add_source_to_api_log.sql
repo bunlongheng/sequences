@@ -1,0 +1,16 @@
+-- Provenance for programmatic creates.
+--
+-- `source` is the calling skill's own name ("repo-audit", "create-sequence",
+-- "automations"). Before this column the log recorded route, IP, user-agent and
+-- the key that matched, none of which say which skill ran - so the 30 audit
+-- renders filed on 2026-09-30 were only identifiable by their
+-- "<repo> - File Layers" title suffix, which is a guess, not a marker.
+--
+-- No backfill: those 30 rows were deleted on 2026-10-04 (74 across the 3
+-- diagram apps) and the owner left them deleted. Their rows in
+-- sequence_api_requests survive, since that table has no FK, so the history of
+-- the run is intact. There is one database behind dev and prod alike, so a
+-- tagging UPDATE here would match nothing anywhere - it would be dead SQL.
+-- Restorable from the row dump if that call is ever reversed:
+--   .../repo-audit-rows/sequences.json  (30 rows, every column, code included)
+ALTER TABLE sequence_api_requests ADD COLUMN IF NOT EXISTS source TEXT;

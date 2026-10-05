@@ -12,7 +12,8 @@
 - DB table is `sequences` (column `sequence_type`). A back-compat VIEW `diagrams` still points at it for the automations app.
 - `/api/sequences` and `/api/ai/sequences` are canonical; `/api/diagrams*` are thin alias re-exports. `/s/[id]` is canonical; `/d/[id]` 308-redirects.
 - detectSequenceType reads the first line keyword to pick the renderer.
-- Every programmatic create is logged to `sequence_api_requests` (route, status, sequence_id, key name that matched, IP, geo, user-agent, referer). Owner UI saves are not logged. Table is additive and has no FK, so deleting a sequence keeps its provenance.
+- A programmatic caller names itself with `source` in the body (`repo-audit`, `create-sequence`, ...). An audit source (anything matching `/audit/i`) or `store: false` renders the SVG and stores NOTHING - 200 `{stored:false, source, svg}`, no id/url/canvas. Rules live in `lib/sequence-source.ts`; the library list (`lib/sequence-list.ts`, used by the SSR index and GET /api/sequences) hides rows tagged `repo-audit` - which is the backstop for `/api/sequences` POST, the one programmatic door with no renderer wired, where an audit source is stored-but-hidden instead.
+- Every programmatic create is logged to `sequence_api_requests` (route, status, sequence_id, key name that matched, IP, geo, user-agent, referer, `source`). Owner UI saves are not logged. Table is additive and has no FK, so deleting a sequence keeps its provenance.
 
 ## Infra
 - Deploy: Vercel (auto-deploys on push; `vercel --prod` for a manual prod deploy)
