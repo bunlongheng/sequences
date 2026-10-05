@@ -308,7 +308,7 @@ function computeAutoLayout(d: Diagram, o: Pick<Opts, "iconMode">): Layout {
     return { textSize: FS, boxWidth, spacing, stepHeight, vPad: 0, margin };
 }
 
-function buildSvg(d: Diagram, o: Opts, lIn: Layout, createdAt?: string | Date, { interactive = true, titleBlock = true }: { interactive?: boolean; titleBlock?: boolean } = {}): string {
+function buildSvg(d: Diagram, o: Opts, lIn: Layout, createdAt?: string | Date, { interactive = true, titleBlock = true, fitLetter = false }: { interactive?: boolean; titleBlock?: boolean; fitLetter?: boolean } = {}): string {
     const { participants: ps_raw, messages: ms } = d;
     if (!ps_raw.length) return "";
     // Auto layout is resolved here rather than by each caller, so a server
@@ -346,12 +346,35 @@ function buildSvg(d: Diagram, o: Opts, lIn: Layout, createdAt?: string | Date, {
             for (let c = lo; c < hi; c++) if (perCol > colGap[c]) colGap[c] = perCol;
         });
     }
+    const VP = l.vPad ?? 44;
+    const totalSteps = d.totalSteps || ms.length;
+    const stepGap = MG + VP;
+    // Default breathing room between the header/footer boxes and the first/last
+    // step, applied only at the top and bottom edges (not between every step).
+    const EDGE_PAD = 24;
+    // Height of everything but the notes section, known before any column math.
+    const coreH = TOP_PAD + TITLE_H + TP + BH + EDGE_PAD + VP + Math.max(0, totalSteps - 1) * stepGap + VP + EDGE_PAD + BH + BOT_PAD;
+    // fitLetter: the share page shows the drawing on a paper the size of the
+    // window, and a few long messages can stretch the natural auto width to a
+    // 6:1 strip, which fitted to that paper is a thin line across its middle.
+    // Shrink every gap by one factor until the drawing is no wider than a US
+    // Letter landscape page (11 x 8.5) allows for its height; a gap never drops
+    // under baseCol, so boxes keep clear of each other, and an over-long pill
+    // gets the ellipsis below instead of the paper getting the margin. The
+    // editor and every other render keep the natural width.
+    const LETTER = 11 / 8.5;
+    if (fitLetter && o.autoLayout && N > 1) {
+        const natural = colGap.reduce((a, b) => a + b, 0);
+        const room = Math.max(0, coreH * LETTER - BW - 2 * LP);
+        if (natural > room) {
+            const f = room / natural;
+            for (let c = 0; c < colGap.length; c++) colGap[c] = Math.max(baseCol, colGap[c] * f);
+        }
+    }
     const colX: number[] = [LP + BW / 2];
     for (let i = 1; i < N; i++) colX.push(colX[i - 1] + colGap[i - 1]);
     const cx = (i: number) => colX[i] ?? LP + BW / 2;
     const W = N > 1 ? colX[N - 1] + BW / 2 + LP : 2 * LP + BW;
-    const VP = l.vPad ?? 44;
-    const totalSteps = d.totalSteps || ms.length;
     const NOTE_HPAD = 14, NOTE_VPAD = 10, NOTE_ITEM_GAP = 8, NOTE_SEC_PAD = 16, CORNER = 8;
     const noteLineH = FS + 6;
     const notesByCol = new Map<number, SeqNote[]>();
@@ -401,11 +424,7 @@ function buildSvg(d: Diagram, o: Opts, lIn: Layout, createdAt?: string | Date, {
         });
         notesSectionH = maxColH + NOTE_SEC_PAD * 2;
     }
-    const stepGap = MG + VP;
-    // Default breathing room between the header/footer boxes and the first/last
-    // step, applied only at the top and bottom edges (not between every step).
-    const EDGE_PAD = 24;
-    const H = TOP_PAD + TITLE_H + TP + BH + EDGE_PAD + VP + Math.max(0, totalSteps - 1) * stepGap + VP + EDGE_PAD + BH + notesSectionH + BOT_PAD;
+    const H = coreH + notesSectionH;
     const lt = TOP_PAD + TITLE_H + TP + BH, lb = H - BOT_PAD - notesSectionH - BH;
     const msgY = (s: number) => TOP_PAD + TITLE_H + TP + BH + EDGE_PAD + VP + (s - 1) * stepGap;
     const f = `'${o.font}', sans-serif`;
