@@ -19,6 +19,14 @@ describe("isLocal returns true for local hosts", () => {
     expect(isLocal(req("localhost:3002"))).toBe(true);
   });
 
+  it("the Caddy hostname sequences.localhost (the local URL the app is served on)", () => {
+    expect(isLocal(req("sequences.localhost"))).toBe(true);
+  });
+
+  it("sequences.localhost with port", () => {
+    expect(isLocal(req("sequences.localhost:3002"))).toBe(true);
+  });
+
   it("127.0.0.1 loopback", () => {
     expect(isLocal(req("127.0.0.1"))).toBe(true);
   });
@@ -56,7 +64,7 @@ describe("isLocal returns false for public / non-local hosts", () => {
     expect(isLocal(req("sequences-bheng.vercel.app"))).toBe(false);
   });
 
-  it("subdomain of localhost is NOT local (evil.localhost) — no wildcard bypass", () => {
+  it("any other subdomain of localhost is NOT local (evil.localhost) - no wildcard bypass", () => {
     expect(isLocal(req("evil.localhost"))).toBe(false);
   });
 
