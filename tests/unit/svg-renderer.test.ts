@@ -486,6 +486,17 @@ describe("buildSvg", () => {
   const baseOpts: Opts = { ...DEFAULT_OPTS };
   const baseLayout: Layout = { ...DEFAULT_LAYOUT };
 
+  it("a long self message on the last participant stays inside the drawing", () => {
+    const long = "initial-login redirect to /dashboard or /overview (AuthenticatedApp decides from the package)";
+    const d = parse(`sequenceDiagram\nparticipant A\nparticipant B\nA->>B: hi\nB->>B: ${long}`);
+    const svg = buildSvg(d, { ...baseOpts, coloredText: true, autoLayout: true }, baseLayout);
+    const W = Number(svg.match(/<svg[^>]*\swidth="(\d+(?:\.\d+)?)"/)![1]);
+    const pills = [...svg.matchAll(/<rect x="([\d.]+)" y="[\d.]+" width="([\d.]+)" height="[\d.]+" rx=/g)].map(m => Number(m[1]) + Number(m[2]));
+    expect(pills.length).toBeGreaterThan(0);
+    for (const right of pills) expect(right).toBeLessThanOrEqual(W);
+    expect(svg).toContain("…");
+  });
+
   it("returns empty string for empty participants", () => {
     const d: Diagram = { participants: [], messages: [], notes: [], totalSteps: 0 };
     expect(buildSvg(d, baseOpts, baseLayout)).toBe("");

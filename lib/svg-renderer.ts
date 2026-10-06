@@ -509,14 +509,22 @@ function buildSvg(d: Diagram, o: Opts, lIn: Layout, createdAt?: string | Date, {
         const pillTextFill = o.theme === "dark" ? "#ffffff" : "#000000";
         if (fi === ti) {
             const pillOffset = o.coloredNumbers ? fx + cr + 4 : fx + 6;
+            // A self message has no second lifeline to stop at, so a long label
+            // on the last participant used to run straight off the right edge
+            // of the drawing and get cut. It gets the same ellipsis a message
+            // between 2 lifelines gets, measured against the drawing's edge.
+            const selfRoom = Math.max(40, W - LP - pillOffset);
+            let selfText = msg.text;
+            let selfW = Math.max(40, selfText.length * (FS * 0.62) + 12);
+            if (selfW > selfRoom + 0.5) { selfW = selfRoom; const mc = Math.max(1, Math.floor((selfRoom - 20) / (FS * 0.62))); if (mc < selfText.length) selfText = selfText.slice(0, mc) + "…"; }
             if (o.coloredText) {
-                const pillH = FS + 8, pillW = Math.max(40, msg.text.length * (FS * 0.62) + 12);
+                const pillH = FS + 8, pillW = selfW;
                 const pillX = pillOffset, pillY = y - pillH / 2;
                 parts.push(`<rect x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" fill="${th.bg}"/>`);
                 parts.push(`<rect x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" fill="${fpColor}" fill-opacity="0.08" stroke="${fpColor}" stroke-width="1"/>`);
-                parts.push(`<text x="${pillX + pillW / 2}" y="${pillY + pillH / 2 + 1}" text-anchor="middle" dominant-baseline="middle" font-family="${f}" font-size="${FS}" font-weight="600" fill="${pillTextFill}">${esc(msg.text)}</text>`);
+                parts.push(`<text x="${pillX + pillW / 2}" y="${pillY + pillH / 2 + 1}" text-anchor="middle" dominant-baseline="middle" font-family="${f}" font-size="${FS}" font-weight="600" fill="${pillTextFill}">${esc(selfText)}</text>`);
             } else {
-                parts.push(`<text x="${pillOffset}" y="${y+1}" dominant-baseline="middle" font-family="${f}" font-size="${FS}" fill="${fpColor}">${esc(msg.text)}</text>`);
+                parts.push(`<text x="${pillOffset}" y="${y+1}" dominant-baseline="middle" font-family="${f}" font-size="${FS}" fill="${fpColor}">${esc(selfText)}</text>`);
             }
         } else {
             const dir = tx > fx ? 1 : -1;
