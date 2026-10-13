@@ -3,23 +3,25 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { after } from "next/server";
 import Wordmark from "@/app/Wordmark";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import db from "@/lib/db";
 import { parse, buildSvg, DEFAULT_OPTS, DEFAULT_LAYOUT } from "@/lib/svg-renderer";
 import type { Opts, Layout } from "@/lib/svg-renderer";
 import { shareChrome } from "@/lib/share-chrome";
 import { isBot, notifyShareView, readVisit } from "@/lib/share-alert";
+import { resolveOwnerIdServer } from "@/lib/auth-owner";
+import { isUnlocked } from "@/lib/passcode";
 import SocialFooter from "../../SocialFooter";
 
 export const revalidate = 300;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type Row = { code: string; settings: { opts?: Partial<Opts>; layout?: Partial<Layout> } | null; title: string | null; created_at: Date | null };
+type Row = { code: string; settings: { opts?: Partial<Opts>; layout?: Partial<Layout> } | null; title: string | null; created_at: Date | null; passcode_hash: string | null };
 
 const getDiagram = cache(async (id: string): Promise<Row | null> => {
   if (!UUID.test(id)) return null;
-  const { rows } = await db.query("SELECT code, settings, title, created_at FROM sequences WHERE id = $1", [id]);
+  const { rows } = await db.query("SELECT code, settings, title, created_at, passcode_hash FROM sequences WHERE id = $1", [id]);
   if (!rows.length || !rows[0].code?.trim()) return null;
   return rows[0] as Row;
 });
@@ -52,7 +54,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const proto = h.get("x-forwarded-proto") ?? "https";
   const base = `${proto}://${host}`;
   const title = row ? render(row).title : "Diagram not found";
-  const description = row ? "View this diagram - copy the link, open it in the editor, or export it." : "This diagram does not exist.";
+  // A locked sequence previews as locked: its title, never its content.
+  const description = !row ? "This diagram does not exist."
+    : row.passcode_hash ? "Passcode protected. Type the passcode to open it."
+    : "View this diagram - copy the link, open it in the editor, or export it.";
   return {
     metadataBase: new URL(base),
     title: `${title} · Sequences`,
@@ -66,6 +71,12 @@ export default async function DiagramPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const row = await getDiagram(id);
   if (!row) notFound();
+  // A passcode-locked sequence opens to the lock screen until the visitor has
+  // typed the passcode there (the unlock cookie) or is the owner.
+  const h = await headers();
+  if (row.passcode_hash && !isUnlocked(h.get("cookie"), id, row.passcode_hash) && !(await resolveOwnerIdServer())) {
+    redirect(`/api/sequences/${id}/unlock`);
+  }
   const { svg, title, byline, c } = render(row);
 
   // Every real view tells the owner. Runs after the response is sent, so the
@@ -73,7 +84,6 @@ export default async function DiagramPage({ params }: { params: Promise<{ id: st
   // until it finishes: a bare unawaited promise was frozen with the function
   // and the email and note never went out. Link-preview crawlers (iMessage,
   // Slack, WhatsApp) are ignored.
-  const h = await headers();
   if (!isBot(h.get("user-agent"))) {
     const host = h.get("x-forwarded-host") ?? h.get("host") ?? "sequences-bheng.vercel.app";
     const visit = readVisit(h, { id, title, link: `${h.get("x-forwarded-proto") ?? "https"}://${host}/s/${id}` });

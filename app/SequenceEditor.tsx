@@ -16,6 +16,7 @@ import {
 import type { Participant, Arrow, SeqMsg, SeqNote, Diagram, Opts, Layout } from "@/lib/svg-renderer";
 import { SettingsContent, UI_THEMES, type UiTheme } from "./EditorSettings";
 import { extractTitle, zoomStep, pushUndo } from "@/lib/editor-logic";
+import { LockMenu, PasscodePill } from "./LockMenu";
 
 // ── Sequence diagram Prism grammar ────────────────────────────────────────────
 Prism.languages.sequence = {
@@ -79,6 +80,8 @@ export default function SequenceEditor() {
     const [diagramDbTitle, setDiagramDbTitle] = useState<string | null>(null);
     const [isSharedDiagram, setIsSharedDiagram] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
+    const [hasPasscode, setHasPasscode] = useState(false);
+    const [passcode, setPasscodeValue] = useState("");
     const [titleEdit, setTitleEdit] = useState<{ value: string; rect: DOMRect } | null>(null);
 
 
@@ -365,6 +368,12 @@ export default function SequenceEditor() {
             setDiagramLoading(true);
             fetch(`/api/sequences/${urlId}`).then(async r => {
                 if (r.status === 403) return; // private diagram - auth check below handles it
+                // A passcode-locked sequence: the visitor goes to its lock
+                // screen, which sends them on to /s/:id once unlocked.
+                if (r.status === 401) {
+                    const b = await r.json().catch(() => ({}));
+                    if (b?.passcode_required) { window.location.replace(`/api/sequences/${b.id}/unlock`); return; }
+                }
                 if (!r.ok) { setDiagramLoading(false); return; }
                 const d = await r.json();
                 if (d?.code) {
@@ -375,6 +384,8 @@ export default function SequenceEditor() {
                 }
                 if (typeof d?.is_public === "boolean") setIsSharedDiagram(d.is_public);
                 setIsLocked(!!d?.locked);
+                setHasPasscode(!!d?.has_passcode);
+                setPasscodeValue(d?.passcode ?? "");
                 if (d?.created_at) setDiagramCreatedAt(d.created_at);
                 if (d?.title) setDiagramDbTitle(d.title);
                 // Open compact: the saved layout may predate the current auto
@@ -868,6 +879,37 @@ No explanation, no markdown, just the JSON object.`,
             fallback();
         }
     }, [buildShareUrl]);
+
+    // Set, change or clear ("") the share passcode from the Lock menu. Setting
+    // one also publishes the sequence, so the link opens to the lock screen.
+    const setPasscode = useCallback(async (value: string) => {
+        if (!savedDiagramId) return false;
+        try {
+            const r = await fetch(`/api/sequences/${savedDiagramId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ passcode: value }) });
+            if (!r.ok) throw new Error();
+            const { is_public, has_passcode, passcode: saved } = await r.json();
+            setIsSharedDiagram(!!is_public);
+            setHasPasscode(!!has_passcode);
+            setPasscodeValue(saved || "");
+            if (!has_passcode) showToast("Passcode removed", { color: "#64748b" });
+            else navigator.clipboard.writeText(buildShareUrl() ?? "").then(
+                () => showToast("Passcode set - link copied", { color: "#7c3aed" }),
+                () => showToast("Passcode set - the link opens to a lock screen", { color: "#7c3aed" }));
+            return true;
+        } catch {
+            showToast("Could not change the passcode", { color: "#ef4444" });
+            return false;
+        }
+    }, [savedDiagramId, buildShareUrl]);
+
+    const toggleLock = useCallback(async () => {
+        if (!savedDiagramId) return;
+        const next = !isLocked;
+        setIsLocked(next);
+        const r = await fetch(`/api/sequences/${savedDiagramId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ locked: next }) }).catch(() => null);
+        if (!r?.ok) { setIsLocked(!next); showToast("Lock change failed", { color: "#ef4444" }); return; }
+        showToast(next ? "Locked - no edits, no delete" : "Unlocked", { color: next ? "#0f766e" : "#8a8d91" });
+    }, [savedDiagramId, isLocked]);
 
     const share = useCallback(() => {
         const url = buildShareUrl();
@@ -1368,6 +1410,11 @@ No explanation, no markdown, just the JSON object.`,
 
                 <div style={{ flex: 1 }} />
 
+                {/* Passcode state, owner only: dark when the link opens to a lock
+                    screen; a click opens the Lock menu. Off on phones so the
+                    header never overflows. */}
+                {savedDiagramId && isOwner && !isMobile && <PasscodePill on={hasPasscode} />}
+
                 {/* Action toolbar - ideas-style floating pill */}
                 <div style={{
                     display: "flex", alignItems: "center", gap: 2,
@@ -1446,21 +1493,11 @@ No explanation, no markdown, just the JSON object.`,
                         </div>
                     )}
 
-                    {/* Lock: frozen for embeds (README, Confluence) - no edits, no delete */}
+                    {/* Lock: opens the Lock menu - access (the share passcode) and the
+                        edit + delete freeze for embeds (README, Confluence). */}
                     {savedDiagramId && isOwner && (
-                        <button onClick={async () => {
-                            const next = !isLocked;
-                            setIsLocked(next);
-                            const r = await fetch(`/api/sequences/${savedDiagramId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ locked: next }) }).catch(() => null);
-                            if (!r?.ok) { setIsLocked(!next); showToast("Lock change failed", { color: "#ef4444" }); return; }
-                            showToast(next ? "Locked - no edits, no delete" : "Unlocked", { color: next ? "#0f766e" : "#8a8d91" });
-                        }}
-                            title={isLocked ? "Locked - embedded elsewhere. No edits, no delete. Click to unlock" : "Lock - freeze this diagram for README and Confluence embeds"}
-                            aria-label={isLocked ? "Unlock" : "Lock"}
-                            style={{ display: "flex", alignItems: "center", gap: 5, padding: "0 8px", height: 30, borderRadius: 8, border: "none", background: isLocked ? "rgba(15,118,110,0.15)" : "transparent", color: isLocked ? "#14b8a6" : "#64748b", cursor: "pointer", fontSize: 13, fontWeight: isLocked ? 600 : 400, transition: "all 0.1s" }}>
-                            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                            {!isMobile && (isLocked ? "Locked" : "Lock")}
-                        </button>
+                        <LockMenu isLocked={isLocked} onToggleLock={toggleLock} hasPasscode={hasPasscode} passcode={passcode} onSetPasscode={setPasscode}
+                            compact={isMobile} hoverBg={opts.theme === "light" ? "#f1f5f9" : ut.activeTab} />
                     )}
 
                     {/* separator */}
