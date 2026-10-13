@@ -22,15 +22,15 @@ ${HEAD}
 html,body{height:100%;background:linear-gradient(160deg,#f7f8fb 0%,#eceef5 100%);color:#1c1e21;font-family:Inter,-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 .room{min-height:100%;display:flex;align-items:center;justify-content:center;padding:32px 16px}
 /* liquid glass: the diagram shows through, a prismatic rim catches the light */
-.glass{position:relative;width:max-content;min-width:min(480px,calc(100vw - 32px));max-width:min(760px,calc(100vw - 32px));padding:44px 44px 36px;border-radius:32px;text-align:center;isolation:isolate;
-  background:linear-gradient(135deg,rgba(255,255,255,0.62) 0%,rgba(255,255,255,0.34) 55%,rgba(255,255,255,0.5) 100%);
+.glass{position:relative;width:max-content;min-width:min(480px,calc(100vw - 32px));max-width:min(760px,calc(100vw - 32px));padding:44px 44px 36px;border-radius:44px;text-align:center;isolation:isolate;
+  background:linear-gradient(135deg,rgba(255,255,255,0.86) 0%,rgba(255,255,255,0.6) 50%,rgba(255,255,255,0.78) 100%);
   -webkit-backdrop-filter:blur(28px) saturate(170%);backdrop-filter:blur(28px) saturate(170%);
-  box-shadow:0 30px 80px -20px rgba(60,70,120,0.22),0 2px 6px rgba(60,70,120,0.06),inset 0 1px 0 rgba(255,255,255,0.95),inset 0 0 0 1px rgba(255,255,255,0.45)}
-.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;pointer-events:none;z-index:1;
-  background:linear-gradient(135deg,rgba(255,178,150,0.9) 0%,rgba(255,230,210,0.35) 18%,rgba(255,255,255,0.5) 45%,rgba(190,170,255,0.3) 70%,rgba(140,190,255,0.85) 100%);
+  box-shadow:0 0 0 1px rgba(255,255,255,0.95),0 0 0 6px rgba(255,255,255,0.28),0 0 70px 14px rgba(255,255,255,0.85),0 30px 80px -20px rgba(60,70,120,0.18),inset 0 1px 0 rgba(255,255,255,1),inset 0 0 0 2px rgba(255,255,255,0.8),inset 0 0 48px rgba(255,255,255,0.75),inset 0 -18px 36px -24px rgba(170,160,255,0.3)}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:2px;pointer-events:none;z-index:1;
+  background:linear-gradient(135deg,rgba(255,200,180,0.9) 0%,rgba(255,255,255,0.98) 12%,rgba(255,255,255,1) 50%,rgba(255,255,255,0.98) 88%,rgba(180,210,255,0.9) 100%);
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
 .glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
-  background:radial-gradient(42% 32% at 4% 6%,rgba(255,190,170,0.3) 0%,rgba(255,190,170,0) 70%),radial-gradient(40% 32% at 97% 96%,rgba(170,150,255,0.3) 0%,rgba(170,150,255,0) 70%),radial-gradient(30% 25% at 96% 6%,rgba(150,215,255,0.18) 0%,rgba(150,215,255,0) 70%)}
+  background:radial-gradient(55% 40% at 16% 8%,rgba(255,255,255,1) 0%,rgba(255,255,255,0.6) 30%,rgba(255,255,255,0) 65%),radial-gradient(50% 38% at 90% 96%,rgba(255,255,255,0.85) 0%,rgba(255,255,255,0) 60%),radial-gradient(42% 32% at 4% 6%,rgba(255,190,170,0.35) 0%,rgba(255,190,170,0) 70%),radial-gradient(40% 32% at 97% 96%,rgba(170,150,255,0.35) 0%,rgba(170,150,255,0) 70%),radial-gradient(30% 25% at 96% 6%,rgba(150,215,255,0.25) 0%,rgba(150,215,255,0) 70%)}
 .logo{display:block;margin:0 auto 20px;width:76px;height:76px;border-radius:20px;box-shadow:0 10px 26px rgba(28,30,33,0.3),inset 0 0 0 1px rgba(255,255,255,0.3)}
 .caption{font-size:14px;color:#6b7280;margin-top:8px;line-height:1.5}
 .name{font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.03em;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -38,9 +38,9 @@ html,body{height:100%;background:linear-gradient(160deg,#f7f8fb 0%,#eceef5 100%)
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 .alert.hidden{visibility:hidden;animation:none}
 .entry{margin-top:30px;display:flex;align-items:center;gap:10px;padding:6px 6px 6px 20px;border-radius:999px;
-  background:rgba(255,255,255,0.55);border:1px solid rgba(255,255,255,0.9);
-  box-shadow:inset 0 1px 1px rgba(255,255,255,0.9),0 12px 34px -8px rgba(110,100,200,0.22),0 0 0 1px rgba(120,110,200,0.08);transition:box-shadow .15s}
-.entry:focus-within{box-shadow:inset 0 1px 1px rgba(255,255,255,0.9),0 12px 34px -8px rgba(110,100,200,0.3),0 0 0 4px rgba(129,140,248,0.28)}
+  background:rgba(255,255,255,0.75);border:1px solid rgba(255,255,255,1);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,1),0 0 0 1px rgba(255,255,255,0.95),0 0 28px 4px rgba(255,255,255,0.8),0 12px 34px -8px rgba(110,100,200,0.18);transition:box-shadow .15s}
+.entry:focus-within{box-shadow:inset 0 1px 1px rgba(255,255,255,1),0 0 0 1px rgba(255,255,255,0.95),0 0 28px 4px rgba(255,255,255,0.8),0 12px 34px -8px rgba(110,100,200,0.25),0 0 0 4px rgba(129,140,248,0.28)}
 .entry svg.lock{flex:none;width:22px;height:22px;color:#6b7280}
 /* type=text + text-security masks input WITHOUT being a password field, so
    LastPass/1Password never attach their autofill icon. */
