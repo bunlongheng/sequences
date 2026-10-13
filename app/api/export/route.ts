@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db";
+import { authorizeOwner } from "@/lib/auth-owner";
+import { isUnlocked, PASSCODE_REQUIRED } from "@/lib/passcode";
 
 const CORS = {
   "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -26,10 +28,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid diagram ID" }, { status: 400, headers: CORS });
   }
 
-  const { rows } = await db.query("SELECT code, settings, title FROM sequences WHERE id = $1", [id]);
+  const { rows } = await db.query("SELECT code, settings, title, passcode_hash FROM sequences WHERE id = $1", [id]);
   if (!rows.length) return NextResponse.json({ error: "Diagram not found" }, { status: 404, headers: CORS });
 
-  const { code, settings, title } = rows[0];
+  const { code, settings, title, passcode_hash } = rows[0];
+  // A passcode-locked sequence hands out no code until it is unlocked.
+  if (passcode_hash && !(await authorizeOwner(req)) && !isUnlocked(req.headers.get("cookie"), id, passcode_hash)) {
+    return NextResponse.json(PASSCODE_REQUIRED(id), { status: 401, headers: { ...CORS, "Cache-Control": "no-store" } });
+  }
   if (!code?.trim()) return NextResponse.json({ error: "Diagram has no code" }, { status: 400, headers: CORS });
 
   // Return the raw Mermaid code + metadata so the caller can render it

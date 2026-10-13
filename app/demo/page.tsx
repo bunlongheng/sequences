@@ -14,7 +14,8 @@ type Demo = { id: string; title: string; sequence_type: string };
 
 export default async function DemoPage() {
   const { rows } = await db.query(
-    `SELECT id, title, sequence_type FROM sequences WHERE id = ANY($1::uuid[])`,
+    // A passcode-locked sequence never shows on the public wall.
+    `SELECT id, title, sequence_type FROM sequences WHERE id = ANY($1::uuid[]) AND passcode_hash IS NULL`,
     [[...DEMO_IDS]]
   );
   const byId = new Map(rows.map(r => [r.id, r]));

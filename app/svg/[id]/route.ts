@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import db from "@/lib/db";
 import { parse, buildSvg, DEFAULT_OPTS, DEFAULT_LAYOUT } from "@/lib/svg-renderer";
 import type { Opts, Layout } from "@/lib/svg-renderer";
+import { authorizeOwner } from "@/lib/auth-owner";
+import { isUnlocked, PASSCODE_REQUIRED } from "@/lib/passcode";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +17,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
   }
 
-  const { rows } = await db.query("SELECT code, settings, title, created_at FROM sequences WHERE id = $1", [id]);
+  const { rows } = await db.query("SELECT code, settings, title, created_at, passcode_hash FROM sequences WHERE id = $1", [id]);
   if (!rows.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const { code, settings, title, created_at } = rows[0];
+  const { code, settings, title, created_at, passcode_hash } = rows[0];
+  // A passcode-locked sequence draws nothing for a visitor who has not
+  // unlocked it, and what it does draw never sits in a shared cache.
+  if (passcode_hash && !(await authorizeOwner(req)) && !isUnlocked(req.headers.get("cookie"), id, passcode_hash)) {
+    return NextResponse.json(PASSCODE_REQUIRED(id), { status: 401, headers: { "Cache-Control": "no-store" } });
+  }
   if (!code?.trim()) return NextResponse.json({ error: "No code" }, { status: 400 });
 
   // Compact, like the editor: autoLayout is forced on for every public render
@@ -48,7 +55,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     headers: {
       "Content-Type": "image/svg+xml",
       "Content-Disposition": `attachment; filename="${filename}"`,
-      "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+      "Cache-Control": passcode_hash ? "private, no-store" : "public, max-age=86400, stale-while-revalidate=604800",
     },
   });
 }
