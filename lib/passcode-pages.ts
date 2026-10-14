@@ -8,9 +8,13 @@ const HEAD = `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">`;
 
-/** Liquid glass lock: a white frosted card with the title, 1 masked field,
- *  Enter submits. With a `backdrop` (a tiny PNG data URI of the diagram) the
- *  card sits on that diagram, blurred past reading, instead of a plain wash. */
+/** Liquid glass lock, the WWDC25 recipe (freefrontend.com/css-liquid-glass):
+ *  a backdrop layer blurred and refracted through an SVG turbulence +
+ *  displacement + specular-lighting filter, a white tint over it, a shine
+ *  layer with inset white highlights, the content on top. Browsers that do
+ *  not distort a backdrop (Safari) still get the blur, the tint and the shine.
+ *  With a `backdrop` (a tiny PNG data URI of the diagram) the card sits on
+ *  that diagram, blurred past reading, instead of a plain wash. */
 export function gatePage({ action, title, bad, backdrop }: { action: string; title: string; bad?: boolean; backdrop?: string | null }): string {
   const bg = typeof backdrop === "string" && backdrop.startsWith("data:image/png;base64,") ? backdrop : null;
   const alert = bad ? `<div class="alert" role="alert">Wrong passcode</div>` : `<div class="alert hidden">&nbsp;</div>`;
@@ -19,28 +23,28 @@ ${HEAD}
 <title>${esc(title)}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:linear-gradient(160deg,#f7f8fb 0%,#eceef5 100%);color:#1c1e21;font-family:Inter,-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+html,body{height:100%;background:linear-gradient(160deg,#f7f8fb 0%,#e9ecf5 100%);color:#1c1e21;font-family:Inter,-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 .room{min-height:100%;display:flex;align-items:center;justify-content:center;padding:32px 16px}
-/* liquid glass: the diagram shows through, a prismatic rim catches the light */
-.glass{position:relative;width:max-content;min-width:min(480px,calc(100vw - 32px));max-width:min(760px,calc(100vw - 32px));padding:44px 44px 36px;border-radius:44px;text-align:center;isolation:isolate;
-  background:linear-gradient(135deg,rgba(255,255,255,0.86) 0%,rgba(255,255,255,0.6) 50%,rgba(255,255,255,0.78) 100%);
-  -webkit-backdrop-filter:blur(28px) saturate(170%);backdrop-filter:blur(28px) saturate(170%);
-  box-shadow:0 0 0 1px rgba(255,255,255,0.95),0 0 0 6px rgba(255,255,255,0.28),0 0 70px 14px rgba(255,255,255,0.85),0 30px 80px -20px rgba(60,70,120,0.18),inset 0 1px 0 rgba(255,255,255,1),inset 0 0 0 2px rgba(255,255,255,0.8),inset 0 0 48px rgba(255,255,255,0.75),inset 0 -18px 36px -24px rgba(170,160,255,0.3)}
-.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:2px;pointer-events:none;z-index:1;
-  background:linear-gradient(135deg,rgba(255,200,180,0.9) 0%,rgba(255,255,255,0.98) 12%,rgba(255,255,255,1) 50%,rgba(255,255,255,0.98) 88%,rgba(180,210,255,0.9) 100%);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
-.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
-  background:radial-gradient(55% 40% at 16% 8%,rgba(255,255,255,1) 0%,rgba(255,255,255,0.6) 30%,rgba(255,255,255,0) 65%),radial-gradient(50% 38% at 90% 96%,rgba(255,255,255,0.85) 0%,rgba(255,255,255,0) 60%),radial-gradient(42% 32% at 4% 6%,rgba(255,190,170,0.35) 0%,rgba(255,190,170,0) 70%),radial-gradient(40% 32% at 97% 96%,rgba(170,150,255,0.35) 0%,rgba(170,150,255,0) 70%),radial-gradient(30% 25% at 96% 6%,rgba(150,215,255,0.25) 0%,rgba(150,215,255,0) 70%)}
+/* the glass: 4 stacked layers, the content last */
+.glass{position:relative;width:max-content;min-width:min(480px,calc(100vw - 32px));max-width:min(760px,calc(100vw - 32px));border-radius:44px;overflow:hidden;isolation:isolate;text-align:center;
+  box-shadow:0 0 0 1px rgba(255,255,255,0.8),0 24px 70px -18px rgba(60,70,120,0.28),0 0 60px 8px rgba(255,255,255,0.55)}
+.fx{position:absolute;inset:0;z-index:0;-webkit-backdrop-filter:blur(4px) saturate(170%);backdrop-filter:blur(4px) saturate(170%);filter:url(#liquid)}
+.tint{position:absolute;inset:0;z-index:1;background:linear-gradient(135deg,rgba(255,255,255,0.62) 0%,rgba(255,255,255,0.4) 50%,rgba(255,255,255,0.56) 100%)}
+.shine{position:absolute;inset:0;z-index:2;pointer-events:none;
+  box-shadow:inset 2px 2px 1px 0 rgba(255,255,255,0.85),inset -1px -1px 1px 1px rgba(255,255,255,0.6),inset 0 0 40px rgba(255,255,255,0.45);
+  background:radial-gradient(60% 45% at 14% 6%,rgba(255,255,255,0.9) 0%,rgba(255,255,255,0) 60%),radial-gradient(50% 40% at 92% 98%,rgba(255,255,255,0.7) 0%,rgba(255,255,255,0) 60%)}
+.body{position:relative;z-index:3;padding:44px 44px 36px}
 .logo{display:block;margin:0 auto 20px;width:76px;height:76px;border-radius:20px;box-shadow:0 10px 26px rgba(28,30,33,0.3),inset 0 0 0 1px rgba(255,255,255,0.3)}
 .caption{font-size:14px;color:#6b7280;margin-top:8px;line-height:1.5}
 .name{font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.03em;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .alert{margin:18px 0 -6px;font-size:13.5px;font-weight:600;color:#d92d20;animation:shake 0.4s ease-in-out}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 .alert.hidden{visibility:hidden;animation:none}
-.entry{margin-top:30px;display:flex;align-items:center;gap:10px;padding:6px 6px 6px 20px;border-radius:999px;
-  background:rgba(255,255,255,0.75);border:1px solid rgba(255,255,255,1);
-  box-shadow:inset 0 1px 1px rgba(255,255,255,1),0 0 0 1px rgba(255,255,255,0.95),0 0 28px 4px rgba(255,255,255,0.8),0 12px 34px -8px rgba(110,100,200,0.18);transition:box-shadow .15s}
-.entry:focus-within{box-shadow:inset 0 1px 1px rgba(255,255,255,1),0 0 0 1px rgba(255,255,255,0.95),0 0 28px 4px rgba(255,255,255,0.8),0 12px 34px -8px rgba(110,100,200,0.25),0 0 0 4px rgba(129,140,248,0.28)}
+/* the field is a smaller lens of the same glass */
+.entry{position:relative;margin-top:30px;display:flex;align-items:center;gap:10px;padding:6px 6px 6px 20px;border-radius:999px;
+  background:rgba(255,255,255,0.5);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  box-shadow:inset 2px 2px 1px 0 rgba(255,255,255,0.95),inset -1px -1px 1px 1px rgba(255,255,255,0.7),0 0 0 1px rgba(255,255,255,0.9),0 10px 30px -10px rgba(110,100,200,0.3);transition:box-shadow .15s}
+.entry:focus-within{box-shadow:inset 2px 2px 1px 0 rgba(255,255,255,0.95),inset -1px -1px 1px 1px rgba(255,255,255,0.7),0 0 0 1px rgba(255,255,255,0.9),0 10px 30px -10px rgba(110,100,200,0.3),0 0 0 4px rgba(129,140,248,0.28)}
 .entry svg.lock{flex:none;width:22px;height:22px;color:#6b7280}
 /* type=text + text-security masks input WITHOUT being a password field, so
    LastPass/1Password never attach their autofill icon. */
@@ -52,16 +56,29 @@ html,body{height:100%;background:linear-gradient(160deg,#f7f8fb 0%,#eceef5 100%)
 .go:active{transform:translateY(0) scale(0.97)}
 .go:focus-visible{outline:3px solid rgba(129,140,248,0.6);outline-offset:2px}
 .go svg{width:20px;height:20px}
-.blur{position:fixed;inset:-60px;background:#fff url("${bg || ""}") center/contain no-repeat;filter:blur(22px) saturate(1.1);z-index:0}
-.veil{position:fixed;inset:0;background:rgba(255,255,255,0.4);z-index:0}
+/* the diagram behind: blurred enough to be unreadable, sharp enough to refract */
+.blur{position:fixed;inset:-60px;background:#fff url("${bg || ""}") center/contain no-repeat;filter:blur(14px) saturate(1.15);z-index:0}
+.veil{position:fixed;inset:0;background:rgba(255,255,255,0.3);z-index:0}
 .has-blur .room{position:relative;z-index:1}
 html.has-blur,html.has-blur body{background:#f5f6f8}
 @media (prefers-reduced-motion:reduce){.alert,.go{animation:none;transition:none}}
 </style>
 </head><body>
+<svg style="position:absolute;width:0;height:0" aria-hidden="true"><filter id="liquid" x="0%" y="0%" width="100%" height="100%" filterUnits="objectBoundingBox" color-interpolation-filters="sRGB">
+  <feTurbulence type="fractalNoise" baseFrequency="0.008 0.008" numOctaves="2" seed="7" result="noise"/>
+  <feGaussianBlur in="noise" stdDeviation="3" result="soft"/>
+  <feSpecularLighting in="soft" surfaceScale="9" specularConstant="1.2" specularExponent="70" lighting-color="#ffffff" result="spec"><fePointLight x="-120" y="-160" z="320"/></feSpecularLighting>
+  <feComposite in="spec" in2="SourceGraphic" operator="in" result="specIn"/>
+  <feDisplacementMap in="SourceGraphic" in2="soft" scale="140" xChannelSelector="R" yChannelSelector="G" result="bent"/>
+  <feComposite in="specIn" in2="bent" operator="arithmetic" k1="0" k2="0.9" k3="1" k4="0"/>
+</filter></svg>
 ${bg ? `<div class="blur" aria-hidden="true"></div><div class="veil" aria-hidden="true"></div>` : ""}
 <div class="room">
 <form class="glass" method="POST" action="${esc(action)}">
+  <div class="fx" aria-hidden="true"></div>
+  <div class="tint" aria-hidden="true"></div>
+  <div class="shine" aria-hidden="true"></div>
+  <div class="body">
   <img class="logo" src="/icon.png" alt="Sequences" width="76" height="76">
   <div class="name">${esc(title)}</div>
   <div class="caption">Protected sequence</div>
@@ -71,6 +88,7 @@ ${bg ? `<div class="blur" aria-hidden="true"></div><div class="veil" aria-hidden
     <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg>
     <input name="passcode" type="text" autofocus autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other" required placeholder="Passcode" aria-label="Passcode">
     <button class="go" type="submit" aria-label="Open sequence"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  </div>
   </div>
 </form>
 </div>
