@@ -9,13 +9,11 @@ const HEAD = `<meta charset="utf-8">
 <meta name="robots" content="noindex">`;
 
 /** Liquid glass lock: the WWDC25 recipe from freefrontend.com/css-liquid-glass
- *  (lucasromerodb/liquid-glass-effect-macos), layer for layer. An effect layer
- *  blurs the backdrop 3 px and bends it through a turbulence displacement map
- *  with a specular light, a 25% white tint sits over it, a shine layer draws
- *  the 2 inset highlights, the content is on top. Browsers that do not
- *  distort a backdrop (Safari) still get the blur, the tint and the shine.
- *  With a `backdrop` (a PNG data URI of the diagram) the card sits on that
- *  diagram, blurred past reading; the glass needs its shapes to refract. */
+ *  (lucasromerodb/liquid-glass-effect-macos), layer for layer, minus its
+ *  displacement ripple. An effect layer blurs the backdrop 3 px, a 25% white
+ *  tint sits over it, a shine layer draws the 2 inset highlights, the content
+ *  is on top. With a `backdrop` (a PNG data URI of the diagram) the card sits
+ *  on that diagram, blurred past reading. */
 export function gatePage({ action, title, bad, backdrop }: { action: string; title: string; bad?: boolean; backdrop?: string | null }): string {
   const bg = typeof backdrop === "string" && backdrop.startsWith("data:image/png;base64,") ? backdrop : null;
   const alert = bad ? `<div class="alert" role="alert">Wrong passcode</div>` : `<div class="alert hidden">&nbsp;</div>`;
@@ -29,7 +27,7 @@ html,body{height:100%;background:linear-gradient(160deg,#e8ecf6 0%,#d6dcea 100%)
 /* LIQUID GLASS: wrapper, effect, tint, shine, text */
 .glass{position:relative;width:max-content;min-width:min(480px,calc(100vw - 32px));max-width:min(760px,calc(100vw - 32px));border-radius:44px;overflow:hidden;text-align:center;
   box-shadow:0 6px 6px rgba(0,0,0,0.2),0 0 20px rgba(0,0,0,0.1)}
-.effect{position:absolute;z-index:0;inset:0;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);filter:url(#glass-distortion);overflow:hidden;isolation:isolate}
+.effect{position:absolute;z-index:0;inset:0;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);overflow:hidden;isolation:isolate}
 .tint{z-index:1;position:absolute;inset:0;background:rgba(255,255,255,0.25)}
 .shine{position:absolute;inset:0;z-index:2;overflow:hidden;border-radius:inherit;
   box-shadow:inset 2px 2px 1px 0 rgba(255,255,255,0.5),inset -1px -1px 1px 1px rgba(255,255,255,0.5)}
@@ -64,22 +62,6 @@ html.has-blur,html.has-blur body{background:#f5f6f8}
 @media (prefers-reduced-motion:reduce){.alert,.go{animation:none;transition:none}}
 </style>
 </head><body>
-<svg style="display:none" aria-hidden="true">
-  <filter id="glass-distortion" x="0%" y="0%" width="100%" height="100%" filterUnits="objectBoundingBox">
-    <feTurbulence type="fractalNoise" baseFrequency="0.01 0.01" numOctaves="1" seed="5" result="turbulence"/>
-    <feComponentTransfer in="turbulence" result="mapped">
-      <feFuncR type="gamma" amplitude="1" exponent="10" offset="0.5"/>
-      <feFuncG type="gamma" amplitude="0" exponent="1" offset="0"/>
-      <feFuncB type="gamma" amplitude="0" exponent="1" offset="0.5"/>
-    </feComponentTransfer>
-    <feGaussianBlur in="turbulence" stdDeviation="3" result="softMap"/>
-    <feSpecularLighting in="softMap" surfaceScale="5" specularConstant="1" specularExponent="100" lighting-color="white" result="specLight">
-      <fePointLight x="-200" y="-200" z="300"/>
-    </feSpecularLighting>
-    <feComposite in="specLight" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="litImage"/>
-    <feDisplacementMap in="SourceGraphic" in2="softMap" scale="150" xChannelSelector="R" yChannelSelector="G"/>
-  </filter>
-</svg>
 ${bg ? `<div class="blur" aria-hidden="true"></div>` : ""}
 <div class="room">
 <form class="glass" method="POST" action="${esc(action)}">
