@@ -686,9 +686,9 @@ describe("POST /api/ai/sequences", () => {
     await POST(req);
     const logCall = q.mock.calls.find(([sql]) => String(sql).includes("sequence_api_requests"));
     expect(logCall).toBeDefined();
-    expect(logCall[1]).toContain("zeta-repo-audit");
+    expect(logCall![1]).toContain("zeta-repo-audit");
     // sequence_id stays null: there is no row to point at.
-    expect(logCall[1][3]).toBeNull();
+    expect(logCall![1][3]).toBeNull();
     vi.unstubAllEnvs();
   });
 
@@ -706,7 +706,7 @@ describe("POST /api/ai/sequences", () => {
     });
     expect((await POST(req)).status).toBe(201);
     const insert = q.mock.calls.find(([sql]) => String(sql).includes("INSERT INTO sequences"));
-    expect(JSON.parse(insert[1][6]).source).toBe("create-sequence");
+    expect(JSON.parse(insert![1][6]).source).toBe("create-sequence");
     vi.unstubAllEnvs();
   });
 });
