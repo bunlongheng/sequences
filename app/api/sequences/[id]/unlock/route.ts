@@ -38,8 +38,9 @@ const back = (id: string) => `/s/${id}`;
 // Roboto is bundled (see opengraph-image.tsx) so resvg draws text on serverless.
 const FONT_FILES = ["Roboto-Regular.ttf", "Roboto-Bold.ttf"].map((f) => join(process.cwd(), "lib/fonts", f));
 
-// The diagram behind the glass, as an 80 px wide PNG: a message is a few
-// pixels, so nothing in it can be read, and the page blurs it further. Only
+// The diagram behind the glass, as a 360 px wide PNG: a label is 3 px tall,
+// so nothing in it can be read once the page stretches and blurs it, but the
+// lifelines, boxes and arrows keep enough shape for the glass to refract. Only
 // this thumbnail ever leaves the server; null (a plain wash) if it cannot render.
 function backdrop(row: Row): string | null {
   try {
@@ -47,7 +48,7 @@ function backdrop(row: Row): string | null {
     const opts: Opts = { ...DEFAULT_OPTS, ...(row.settings?.opts ?? {}), autoLayout: true };
     const layout: Layout = { ...DEFAULT_LAYOUT, ...(row.settings?.layout ?? {}) };
     const svg = buildSvg(parse(row.code), opts, layout, row.created_at ?? undefined, { titleBlock: false });
-    const png = new Resvg(svg, { fitTo: { mode: "width", value: 80 }, font: { fontFiles: FONT_FILES, defaultFontFamily: "Roboto", loadSystemFonts: false } }).render().asPng();
+    const png = new Resvg(svg, { fitTo: { mode: "width", value: 360 }, font: { fontFiles: FONT_FILES, defaultFontFamily: "Roboto", loadSystemFonts: false } }).render().asPng();
     return `data:image/png;base64,${Buffer.from(png).toString("base64")}`;
   } catch {
     return null;

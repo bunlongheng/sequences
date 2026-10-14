@@ -8,13 +8,14 @@ const HEAD = `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">`;
 
-/** Liquid glass lock, the WWDC25 recipe (freefrontend.com/css-liquid-glass):
- *  a backdrop layer blurred and refracted through an SVG turbulence +
- *  displacement + specular-lighting filter, a white tint over it, a shine
- *  layer with inset white highlights, the content on top. Browsers that do
- *  not distort a backdrop (Safari) still get the blur, the tint and the shine.
- *  With a `backdrop` (a tiny PNG data URI of the diagram) the card sits on
- *  that diagram, blurred past reading, instead of a plain wash. */
+/** Liquid glass lock: the WWDC25 recipe from freefrontend.com/css-liquid-glass
+ *  (lucasromerodb/liquid-glass-effect-macos), layer for layer. An effect layer
+ *  blurs the backdrop 3 px and bends it through a turbulence displacement map
+ *  with a specular light, a 25% white tint sits over it, a shine layer draws
+ *  the 2 inset highlights, the content is on top. Browsers that do not
+ *  distort a backdrop (Safari) still get the blur, the tint and the shine.
+ *  With a `backdrop` (a PNG data URI of the diagram) the card sits on that
+ *  diagram, blurred past reading; the glass needs its shapes to refract. */
 export function gatePage({ action, title, bad, backdrop }: { action: string; title: string; bad?: boolean; backdrop?: string | null }): string {
   const bg = typeof backdrop === "string" && backdrop.startsWith("data:image/png;base64,") ? backdrop : null;
   const alert = bad ? `<div class="alert" role="alert">Wrong passcode</div>` : `<div class="alert hidden">&nbsp;</div>`;
@@ -23,59 +24,66 @@ ${HEAD}
 <title>${esc(title)}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:linear-gradient(160deg,#f7f8fb 0%,#e9ecf5 100%);color:#1c1e21;font-family:Inter,-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+html,body{height:100%;background:linear-gradient(160deg,#e8ecf6 0%,#d6dcea 100%);color:#1c1e21;font-family:Inter,-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 .room{min-height:100%;display:flex;align-items:center;justify-content:center;padding:32px 16px}
-/* the glass: 4 stacked layers, the content last */
-.glass{position:relative;width:max-content;min-width:min(480px,calc(100vw - 32px));max-width:min(760px,calc(100vw - 32px));border-radius:44px;overflow:hidden;isolation:isolate;text-align:center;
-  box-shadow:0 0 0 1px rgba(255,255,255,0.8),0 24px 70px -18px rgba(60,70,120,0.28),0 0 60px 8px rgba(255,255,255,0.55)}
-.fx{position:absolute;inset:0;z-index:0;-webkit-backdrop-filter:blur(4px) saturate(170%);backdrop-filter:blur(4px) saturate(170%);filter:url(#liquid)}
-.tint{position:absolute;inset:0;z-index:1;background:linear-gradient(135deg,rgba(255,255,255,0.62) 0%,rgba(255,255,255,0.4) 50%,rgba(255,255,255,0.56) 100%)}
-.shine{position:absolute;inset:0;z-index:2;pointer-events:none;
-  box-shadow:inset 2px 2px 1px 0 rgba(255,255,255,0.85),inset -1px -1px 1px 1px rgba(255,255,255,0.6),inset 0 0 40px rgba(255,255,255,0.45);
-  background:radial-gradient(60% 45% at 14% 6%,rgba(255,255,255,0.9) 0%,rgba(255,255,255,0) 60%),radial-gradient(50% 40% at 92% 98%,rgba(255,255,255,0.7) 0%,rgba(255,255,255,0) 60%)}
+/* LIQUID GLASS: wrapper, effect, tint, shine, text */
+.glass{position:relative;width:max-content;min-width:min(480px,calc(100vw - 32px));max-width:min(760px,calc(100vw - 32px));border-radius:44px;overflow:hidden;text-align:center;
+  box-shadow:0 6px 6px rgba(0,0,0,0.2),0 0 20px rgba(0,0,0,0.1)}
+.effect{position:absolute;z-index:0;inset:0;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);filter:url(#glass-distortion);overflow:hidden;isolation:isolate}
+.tint{z-index:1;position:absolute;inset:0;background:rgba(255,255,255,0.25)}
+.shine{position:absolute;inset:0;z-index:2;overflow:hidden;border-radius:inherit;
+  box-shadow:inset 2px 2px 1px 0 rgba(255,255,255,0.5),inset -1px -1px 1px 1px rgba(255,255,255,0.5)}
 .body{position:relative;z-index:3;padding:44px 44px 36px}
 .logo{display:block;margin:0 auto 20px;width:76px;height:76px;border-radius:20px;box-shadow:0 10px 26px rgba(28,30,33,0.3),inset 0 0 0 1px rgba(255,255,255,0.3)}
-.caption{font-size:14px;color:#6b7280;margin-top:8px;line-height:1.5}
-.name{font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.03em;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.caption{font-size:14px;color:#374151;margin-top:8px;line-height:1.5}
+.name{font-size:28px;line-height:1.2;font-weight:800;letter-spacing:-0.03em;color:#0b1220;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .alert{margin:18px 0 -6px;font-size:13.5px;font-weight:600;color:#d92d20;animation:shake 0.4s ease-in-out}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 .alert.hidden{visibility:hidden;animation:none}
-/* the field is a smaller lens of the same glass */
+/* the field: the same glass, 1 size down */
 .entry{position:relative;margin-top:30px;display:flex;align-items:center;gap:10px;padding:6px 6px 6px 20px;border-radius:999px;
-  background:rgba(255,255,255,0.5);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
-  box-shadow:inset 2px 2px 1px 0 rgba(255,255,255,0.95),inset -1px -1px 1px 1px rgba(255,255,255,0.7),0 0 0 1px rgba(255,255,255,0.9),0 10px 30px -10px rgba(110,100,200,0.3);transition:box-shadow .15s}
-.entry:focus-within{box-shadow:inset 2px 2px 1px 0 rgba(255,255,255,0.95),inset -1px -1px 1px 1px rgba(255,255,255,0.7),0 0 0 1px rgba(255,255,255,0.9),0 10px 30px -10px rgba(110,100,200,0.3),0 0 0 4px rgba(129,140,248,0.28)}
-.entry svg.lock{flex:none;width:22px;height:22px;color:#6b7280}
+  background:rgba(255,255,255,0.3);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+  box-shadow:inset 2px 2px 1px 0 rgba(255,255,255,0.6),inset -1px -1px 1px 1px rgba(255,255,255,0.6),0 4px 10px rgba(0,0,0,0.08);transition:box-shadow .15s}
+.entry:focus-within{box-shadow:inset 2px 2px 1px 0 rgba(255,255,255,0.6),inset -1px -1px 1px 1px rgba(255,255,255,0.6),0 4px 10px rgba(0,0,0,0.08),0 0 0 4px rgba(129,140,248,0.28)}
+.entry svg.lock{flex:none;width:22px;height:22px;color:#374151}
 /* type=text + text-security masks input WITHOUT being a password field, so
    LastPass/1Password never attach their autofill icon. */
-.entry input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:#1f2937;font-size:18px;font-weight:600;font-family:inherit;letter-spacing:0.18em;padding:12px 0;-webkit-text-security:disc;text-security:disc}
-.entry input::placeholder{color:#8b93a5;font-weight:400;letter-spacing:0.01em}
+.entry input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:#0b1220;font-size:18px;font-weight:600;font-family:inherit;letter-spacing:0.18em;padding:12px 0;-webkit-text-security:disc;text-security:disc}
+.entry input::placeholder{color:#4b5563;font-weight:400;letter-spacing:0.01em}
 .go{flex:none;width:48px;height:48px;border:0;border-radius:50%;cursor:pointer;display:grid;place-items:center;color:#fff;
   background:linear-gradient(145deg,#a5a8ff 0%,#8f8bf4 100%);box-shadow:0 8px 18px -6px rgba(110,100,230,0.6),inset 0 1px 0 rgba(255,255,255,0.5);transition:transform .12s,box-shadow .12s}
 .go:hover{transform:translateY(-1px);box-shadow:0 10px 22px -6px rgba(110,100,230,0.7),inset 0 1px 0 rgba(255,255,255,0.5)}
 .go:active{transform:translateY(0) scale(0.97)}
 .go:focus-visible{outline:3px solid rgba(129,140,248,0.6);outline-offset:2px}
 .go svg{width:20px;height:20px}
-/* the diagram behind: blurred enough to be unreadable, sharp enough to refract */
-.blur{position:fixed;inset:-60px;background:#fff url("${bg || ""}") center/contain no-repeat;filter:blur(14px) saturate(1.15);z-index:0}
-.veil{position:fixed;inset:0;background:rgba(255,255,255,0.3);z-index:0}
+/* the diagram behind: stretched to the window and blurred just past
+   reading, so its lifelines and boxes are what the glass bends */
+.blur{position:fixed;inset:-30px;background:#fff url("${bg || ""}") center/cover no-repeat;filter:blur(7px) saturate(1.4);z-index:0}
 .has-blur .room{position:relative;z-index:1}
 html.has-blur,html.has-blur body{background:#f5f6f8}
 @media (prefers-reduced-motion:reduce){.alert,.go{animation:none;transition:none}}
 </style>
 </head><body>
-<svg style="position:absolute;width:0;height:0" aria-hidden="true"><filter id="liquid" x="0%" y="0%" width="100%" height="100%" filterUnits="objectBoundingBox" color-interpolation-filters="sRGB">
-  <feTurbulence type="fractalNoise" baseFrequency="0.008 0.008" numOctaves="2" seed="7" result="noise"/>
-  <feGaussianBlur in="noise" stdDeviation="3" result="soft"/>
-  <feSpecularLighting in="soft" surfaceScale="9" specularConstant="1.2" specularExponent="70" lighting-color="#ffffff" result="spec"><fePointLight x="-120" y="-160" z="320"/></feSpecularLighting>
-  <feComposite in="spec" in2="SourceGraphic" operator="in" result="specIn"/>
-  <feDisplacementMap in="SourceGraphic" in2="soft" scale="140" xChannelSelector="R" yChannelSelector="G" result="bent"/>
-  <feComposite in="specIn" in2="bent" operator="arithmetic" k1="0" k2="0.9" k3="1" k4="0"/>
-</filter></svg>
-${bg ? `<div class="blur" aria-hidden="true"></div><div class="veil" aria-hidden="true"></div>` : ""}
+<svg style="display:none" aria-hidden="true">
+  <filter id="glass-distortion" x="0%" y="0%" width="100%" height="100%" filterUnits="objectBoundingBox">
+    <feTurbulence type="fractalNoise" baseFrequency="0.01 0.01" numOctaves="1" seed="5" result="turbulence"/>
+    <feComponentTransfer in="turbulence" result="mapped">
+      <feFuncR type="gamma" amplitude="1" exponent="10" offset="0.5"/>
+      <feFuncG type="gamma" amplitude="0" exponent="1" offset="0"/>
+      <feFuncB type="gamma" amplitude="0" exponent="1" offset="0.5"/>
+    </feComponentTransfer>
+    <feGaussianBlur in="turbulence" stdDeviation="3" result="softMap"/>
+    <feSpecularLighting in="softMap" surfaceScale="5" specularConstant="1" specularExponent="100" lighting-color="white" result="specLight">
+      <fePointLight x="-200" y="-200" z="300"/>
+    </feSpecularLighting>
+    <feComposite in="specLight" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="litImage"/>
+    <feDisplacementMap in="SourceGraphic" in2="softMap" scale="150" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+${bg ? `<div class="blur" aria-hidden="true"></div>` : ""}
 <div class="room">
 <form class="glass" method="POST" action="${esc(action)}">
-  <div class="fx" aria-hidden="true"></div>
+  <div class="effect" aria-hidden="true"></div>
   <div class="tint" aria-hidden="true"></div>
   <div class="shine" aria-hidden="true"></div>
   <div class="body">
