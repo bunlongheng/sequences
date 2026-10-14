@@ -123,16 +123,16 @@ describe("POST /api/sequences/[id]/unlock", () => {
     expect(await res.text()).toContain("Wrong passcode");
   });
 
-  it("takes the passcode in any case and sets a 30-day HttpOnly cookie that opens the GET", async () => {
+  it("takes the passcode in any case, sets a 30-day HttpOnly cookie that opens the GET, and goes to the page with the reveal", async () => {
     const { POST } = await import("@/app/api/sequences/[id]/unlock/route");
     q.mockResolvedValue({ rows: [lockedRow()], rowCount: 1 });
     const res = await POST(post("  OPEN Sesame ", "2.2.2.2"), ctx);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe(`/s/${ID}?reveal=1`);
     const cookie = res.headers.get("set-cookie") ?? "";
     expect(cookie).toContain("Max-Age=2592000");
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("SameSite=Lax");
-    expect(await res.text()).toContain(`/s/${ID}`);
 
     const { GET } = await import("@/app/api/sequences/[id]/route");
     const read = await GET(new NextRequest(`http://example.com/api/sequences/${ID}`, { headers: { cookie: cookie.split(";")[0] } }), ctx);

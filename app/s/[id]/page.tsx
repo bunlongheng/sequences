@@ -12,6 +12,7 @@ import { isBot, notifyShareView, readVisit } from "@/lib/share-alert";
 import { resolveOwnerIdServer } from "@/lib/auth-owner";
 import { isUnlocked } from "@/lib/passcode";
 import SocialFooter from "../../SocialFooter";
+import UnlockReveal from "./UnlockReveal";
 
 export const revalidate = 300;
 
@@ -67,8 +68,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   };
 }
 
-export default async function DiagramPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function DiagramPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ reveal?: string }> }) {
   const { id } = await params;
+  const reveal = (await searchParams)?.reveal === "1";
   const row = await getDiagram(id);
   if (!row) notFound();
   // A passcode-locked sequence opens to the lock screen until the visitor has
@@ -92,6 +94,8 @@ export default async function DiagramPage({ params }: { params: Promise<{ id: st
 
   return (
     <main style={{ height: "100dvh", display: "flex", flexDirection: "column", overflow: "hidden", background: c.ground, fontFamily: "system-ui,-apple-system,sans-serif" }}>
+      {/* After a right passcode the frost wipes away with fireflies, like Flows. */}
+      <UnlockReveal reveal={reveal} />
       {/* Slim top bar — logo + demo/sign-in, no editing chrome. */}
       <header style={{
         height: 56, display: "flex", alignItems: "center", justifyContent: "space-between",
