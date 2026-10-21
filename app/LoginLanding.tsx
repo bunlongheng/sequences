@@ -33,7 +33,7 @@ export default function LoginLanding() {
 
       <div style={{ position: "relative", zIndex: 1, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 18, padding: 24 }}>
         <div className="ll-icon">
-          <Image src="/icon-512.png" alt="Sequences" width={88} height={88} priority
+          <Image src="/icon-512.png" alt="Sequences" width={88} height={88} priority unoptimized
             style={{ borderRadius: 20, boxShadow: "0 12px 40px rgba(15,23,42,0.16)" }} />
         </div>
         <h1 className="ll-in ll-t1" style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.02em", color: "#111827", margin: 0 }}>Sequences</h1>
