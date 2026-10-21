@@ -6,7 +6,7 @@ import Image from "next/image";
 export default function Wordmark({ size = 32, priority = false, color = "#111827" }: { size?: number; priority?: boolean; color?: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <Image src="/icon-512.png" alt="Sequences" width={size} height={size} priority={priority}
+      <Image src="/icon-512.png" alt="Sequences" width={size} height={size} priority={priority} unoptimized
         style={{ borderRadius: size * 0.25 }} />
       <span style={{ fontSize: Math.round(size * 0.53), fontWeight: 800, letterSpacing: "-0.01em", color }}>
         Sequences
