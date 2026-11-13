@@ -1308,7 +1308,7 @@ export default function SequencesClient({ user, sequences: initial }: { user: Sh
         .dc-card:hover .dc-card-actions,
         .dc-card:focus-within .dc-card-actions { opacity: 1; pointer-events: auto; }
         @media (max-width: 640px) {
-          .dc-header { padding: 0 16px !important; }
+          .dc-header { padding: env(safe-area-inset-top) 16px 0 !important; }
           .dc-filterbar { padding: 0 16px !important; }
           .dc-search-wrap { flex: 1 !important; width: auto !important; min-width: 0 !important; }
           .dc-search-wrap input { width: 100% !important; }
@@ -1318,7 +1318,7 @@ export default function SequencesClient({ user, sequences: initial }: { user: Sh
       `}</style>
 
       {/* ── Header ── */}
-      <header className="dc-header" style={{ background: "#ffffff", borderBottom: "1px solid #e4e6e8", height: 56, position: "sticky", top: 0, zIndex: 10 }}>
+      <header className="dc-header" style={{ background: "#ffffff", borderBottom: "1px solid #e4e6e8", height: 56, paddingTop: "env(safe-area-inset-top)", boxSizing: "content-box", position: "sticky", top: 0, zIndex: 10 }}>
       <div style={{ maxWidth: 1600, margin: "0 auto", padding: "0 32px", height: "100%", display: "flex", alignItems: "center", gap: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
           <Wordmark size={32} priority />

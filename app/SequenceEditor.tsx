@@ -1388,7 +1388,7 @@ No explanation, no markdown, just the JSON object.`,
             {/* ── HEADER ── */}
             <header style={{
                 height: 54, background: ut.headerBg, borderBottom: opts.theme === "light" ? "none" : `1px solid ${ut.headerBorder}`,
-                display: "flex", alignItems: "center", padding: "0 16px", gap: 10, flexShrink: 0,
+                display: "flex", alignItems: "center", padding: "0 16px", paddingTop: "env(safe-area-inset-top)", boxSizing: "content-box", gap: 10, flexShrink: 0,
             }}>
 
                 {/* Back - ideas-style floating pill */}
